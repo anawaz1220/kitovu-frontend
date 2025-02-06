@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 122 47 153; /* Kitovu Purple */
+    --color-secondary: 76 175 80; /* Kitovu Green */
+    --color-accent: 255 64 129; /* Kitovu Pink */
+  }
+  
+  body {
+    @apply bg-gray-50;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-4 py-2 bg-kitovu-purple text-white rounded-md 
+           hover:bg-opacity-90 transition-colors duration-200 
+           focus:outline-none focus:ring-2 focus:ring-kitovu-purple focus:ring-offset-2;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 border border-kitovu-purple text-kitovu-purple 
+           rounded-md hover:bg-kitovu-purple/5 transition-colors duration-200
+           focus:outline-none focus:ring-2 focus:ring-kitovu-purple focus:ring-offset-2;
+  }
+  
+  .form-input {
+    @apply w-full rounded-md border-gray-300 shadow-sm 
+           focus:border-kitovu-purple focus:ring-kitovu-purple
+           disabled:bg-gray-100 disabled:cursor-not-allowed;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+
+  .form-error {
+    @apply text-red-500 text-sm mt-1;
+  }
+
+  .card {
+    @apply bg-white rounded-lg shadow-sm p-6;
+  }
+}
