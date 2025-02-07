@@ -14,6 +14,7 @@
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@hookform/resolvers": "^3.3.4",
+    "@react-leaflet/core": "^2.1.0",
     "@tanstack/react-query": "^5.18.0",
     "@turf/turf": "^7.2.0",
     "axios": "^1.7.9",
@@ -25,6 +26,7 @@
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.50.0",
     "react-leaflet": "^4.2.1",
+    "react-leaflet-draw": "^0.20.6",
     "react-router-dom": "^6.22.0",
     "zustand": "^4.5.0"
   },

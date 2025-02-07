@@ -2,8 +2,7 @@
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import FormInput from '../../common/FormInput';
-import { COOPERATIVE_ACTIVITIES } from './constants';
-
+import { COOPERATIVE_ACTIVITIES } from "../FarmInfo/constants/farm_constants";
 const CooperativeInfo = () => {
   const { register, watch, formState: { errors } } = useFormContext();
   const isMember = watch('isMember');
