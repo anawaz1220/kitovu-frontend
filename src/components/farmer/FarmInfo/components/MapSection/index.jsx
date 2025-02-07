@@ -1,3 +1,5 @@
+
+
 import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, FeatureGroup, GeoJSON, useMap } from 'react-leaflet';
 import { EditControl } from 'react-leaflet-draw';
@@ -7,11 +9,13 @@ import L from 'leaflet';
 import SearchBox from './SearchBox';
 import LayerControls from './LayerControls';
 import FarmForm from '../FarmForm';
+import { useTraceMode } from '../../hooks/useTraceMode';
 import useFarmStore from '../../../../../stores/useFarmStore';
 import { farmService } from '../../../../../services/api/farm.service';
 import { checkOverlap } from '../../utils/geometryUtils';
-import { Button } from '../../../../ui/button';
 import LocationButton from './LocationButton';
+
+
 
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -31,28 +35,64 @@ const MapController = ({ onMapReady }) => {
 };
 
 const MapSection = () => {
-  const [mapInstance, setMapInstance] = useState(null);
-  const editableFG = useRef(null);
-  const [center, setCenter] = useState([9.0820, 8.6753]);
-  const [existingFarms, setExistingFarms] = useState([]);
-  const [mapLayer, setMapLayer] = useState('satellite');
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const drawnLayerRef = useRef(null);
-  const [isEditingBoundary, setIsEditingBoundary] = useState(false);
+    const [mapInstance, setMapInstance] = useState(null);
+    const editableFG = useRef(null);
+    const [center, setCenter] = useState([9.0820, 8.6753]);
+    const [existingFarms, setExistingFarms] = useState([]);
+    const [mapLayer, setMapLayer] = useState('satellite');
+    const [isFormOpen, setIsFormOpen] = useState(false);
+    const drawnLayerRef = useRef(null);
+    const [isEditingBoundary, setIsEditingBoundary] = useState(false);
+    
+    const { 
+      farms,
+      addFarm, 
+      updateFarm,
+      setDrawnPolygon, 
+      drawnPolygon, 
+      hasOverlap, 
+      setHasOverlap,
+      currentFarm,
+      editingFarmIndex,
+      setEditingFarm,
+      resetFarmState
+    } = useFarmStore();
   
-  const { 
-    farms,
-    addFarm, 
-    updateFarm,
-    setDrawnPolygon, 
-    drawnPolygon, 
-    hasOverlap, 
-    setHasOverlap,
-    currentFarm,
-    editingFarmIndex,
-    setEditingFarm,
-    resetFarmState
-  } = useFarmStore();
+    const { isTracing, startTracing, stopTracing, coordinates } = useTraceMode(mapInstance);
+  
+    const handleTraceToggle = () => {
+      if (isTracing) {
+        const tracedCoords = stopTracing();
+        if (tracedCoords.length > 2) {
+          const polygon = tracedCoords.map(coord => [coord[1], coord[0]]); // Convert to [lng, lat] format
+          setDrawnPolygon(polygon);
+          
+          // Check for overlap
+          const geoJSON = {
+            type: 'Feature',
+            geometry: {
+              type: 'Polygon',
+              coordinates: [polygon]
+            }
+          };
+          
+          const hasOverlap = checkOverlap(geoJSON, existingFarms);
+          setHasOverlap(hasOverlap);
+          
+          // Create visual polygon
+          if (drawnLayerRef.current) {
+            drawnLayerRef.current.remove();
+          }
+          drawnLayerRef.current = L.polygon(tracedCoords, {
+            color: hasOverlap ? 'red' : '#4CAF50'
+          }).addTo(mapInstance);
+          
+          setIsFormOpen(true);
+        }
+      } else {
+        startTracing();
+      }
+    };
 
   useEffect(() => {
     if (navigator.geolocation) {
@@ -173,7 +213,6 @@ const MapSection = () => {
 
   return (
     <div className="relative h-full" style={{ zIndex: 0 }}>
-      
       <MapContainer
         center={center}
         zoom={13}
@@ -193,6 +232,7 @@ const MapSection = () => {
           />
         )}
 
+        {/* Existing farms */}
         {farms.map((farm, index) => (
           farm.geometry && editingFarmIndex !== index && (
             <GeoJSON 
@@ -203,68 +243,79 @@ const MapSection = () => {
           )
         ))}
 
-        {existingFarms.map((farm, index) => (
-                farm.geometry && (
-                    <GeoJSON 
-                    key={farm.id || index}
-                    data={farm.geometry}
-                    style={existingFarmsStyle}
-                    onEachFeature={(feature, layer) => {
-                        layer.bindPopup(`
-                        <strong>Farm Info</strong><br/>
-                        Area: ${farm.area} Ha<br/>
-                        Type: ${farm.farm_type}
-                        `);
-                    }}
-                    />
-                )
-                ))}
+         {/* Existing farms */}
+         {existingFarms.map((farm, index) => (
+          farm.geometry && (
+            <GeoJSON 
+              key={farm.id || index}
+              data={farm.geometry}
+              style={{
+                color: '#FFA500',
+                weight: 2,
+                opacity: 0.8,
+                fillColor: '#FFA500',
+                fillOpacity: 0.2
+              }}
+              onEachFeature={(feature, layer) => {
+                layer.bindPopup(`
+                  <strong>Farm Info</strong><br/>
+                  Area: ${farm.area} Ha<br/>
+                  Type: ${farm.farm_type}
+                `);
+              }}
+            />
+          )
+        ))}
 
-        <FeatureGroup ref={editableFG}>
-        <EditControl
-            position="bottomright" // Move it off-screen
-            onCreated={handleCreated}
-            onEdited={handleBoundaryEditComplete}
-            draw={{
-            rectangle: false,
-            circle: false,
-            circlemarker: false,
-            marker: false,
-            polyline: false,
-            polygon: {
-                allowIntersection: false,
-                drawError: {
-                color: '#e1e4e8',
-                message: '<strong>Oh snap!<strong> you can\'t draw that!'
-                },
-                shapeOptions: {
-                color: '#4CAF50'
+        {/* Draw control - disabled during tracing */}
+        {!isTracing && (
+          <FeatureGroup ref={editableFG}>
+            <EditControl
+              position="bottomright"
+              onCreated={handleCreated}
+              onEdited={handleBoundaryEditComplete}
+              draw={{
+                rectangle: false,
+                circle: false,
+                circlemarker: false,
+                marker: false,
+                polyline: false,
+                polygon: {
+                  allowIntersection: false,
+                  drawError: {
+                    color: '#e1e4e8',
+                    message: '<strong>Oh snap!<strong> you can\'t draw that!'
+                  },
+                  shapeOptions: {
+                    color: '#4CAF50'
+                  }
                 }
-            }
-            }}
-            edit={{
-            edit: false,  // Disable edit button
-            remove: false, // Disable delete button
-            featureGroup: editableFG.current
-            }}
-        />
-        </FeatureGroup>
+              }}
+              edit={{
+                edit: false,
+                remove: false,
+                featureGroup: editableFG.current
+              }}
+            />
+          </FeatureGroup>
+        )}
 
+        {/* Controls */}
         <div className="absolute top-2 right-2 z-[1000]">
           <LayerControls
             currentLayer={mapLayer}
             onLayerChange={setMapLayer}
+            isTracing={isTracing}
+            onTraceToggle={handleTraceToggle}
           />
         </div>
         
-            <div className="absolute top-16 right-4 z-[1000]">
-            <LocationButton />
-            </div>
-            {/* `<div className="absolute bottom-1 left-2">
-            <SearchBox setCenter={setCenter} />
-            </div>` */}
+        <div className="absolute top-16 right-4 z-[1000]">
+          <LocationButton />
+        </div>
       </MapContainer>
 
+      {/* Warnings and Form */}
       {hasOverlap && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-md">
           Warning: Farm boundary overlaps with existing farms
