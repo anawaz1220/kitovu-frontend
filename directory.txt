@@ -65,6 +65,7 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\f
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\farmer\KYCInfo\PhotoCapture.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\layout\Layout.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\layout\UserMenu.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\alert.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\button.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\card.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\dialog.jsx
@@ -76,7 +77,10 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\pages\Login.
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\axios.config.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farm.service.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farmer.service.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmerStore.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmStore.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\utils\addressUtils.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\utils\constants.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\utils\imageUtils.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\utils\nigeriaData.json

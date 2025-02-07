@@ -1,12 +1,22 @@
 // src/components/farmer/FarmInfo/index.jsx
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card } from '../../ui/card';
 import MapSection from './components/MapSection';
 import FarmList from './components/FarmList';
 import useFarmStore from '../../../stores/useFarmStore';
+import useFarmerStore from '../../../stores/useFarmerStore';  // Add this import
 
 const FarmInfo = () => {
   const { farms } = useFarmStore();
+  const { setStepValidation } = useFarmerStore();  // Add this
+
+  // Add validation effect
+  useEffect(() => {
+    // Validate that at least one farm is added
+    const isValid = farms.length > 0;
+    console.log('Farm validation:', { isValid, farmCount: farms.length });
+    setStepValidation(2, isValid);
+  }, [farms, setStepValidation]);
 
   return (
     <div className="space-y-6">

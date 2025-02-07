@@ -65,6 +65,7 @@ const MapSection = () => {
     const loadFarms = async () => {
       try {
         const data = await farmService.getFarmGeometries();
+        console.log('Received farm geometries:', data.geometries);
         setExistingFarms(data.geometries);
       } catch (error) {
         console.error('Error loading farms:', error);
@@ -163,32 +164,16 @@ const MapSection = () => {
   };
 
   const existingFarmsStyle = {
-    color: '#4CAF50',
+    color: '#FFA500', // Orange color
     weight: 2,
     opacity: 0.8,
+    fillColor: '#FFA500', // Orange fill
     fillOpacity: 0.2
   };
 
   return (
     <div className="relative h-full" style={{ zIndex: 0 }}>
-      {/* <div className="absolute top-2 right-2 z-[1000]">
-      <Button
-        onClick={() => {
-            const featureGroup = editableFG.current;
-            if (featureGroup) {
-            const drawControl = featureGroup.leafletElement?._toolbars?.draw;
-            if (drawControl?.options?.polygon) {
-                drawControl._modes.polygon.handler.enable();
-            }
-            }
-        }}
-        disabled={isEditingBoundary}
-        className="bg-kitovu-purple hover:bg-kitovu-purple/90"
-        >
-        Draw Farm
-        </Button>
-      </div> */}
-
+      
       <MapContainer
         center={center}
         zoom={13}
@@ -217,6 +202,23 @@ const MapSection = () => {
             />
           )
         ))}
+
+        {existingFarms.map((farm, index) => (
+                farm.geometry && (
+                    <GeoJSON 
+                    key={farm.id || index}
+                    data={farm.geometry}
+                    style={existingFarmsStyle}
+                    onEachFeature={(feature, layer) => {
+                        layer.bindPopup(`
+                        <strong>Farm Info</strong><br/>
+                        Area: ${farm.area} Ha<br/>
+                        Type: ${farm.farm_type}
+                        `);
+                    }}
+                    />
+                )
+                ))}
 
         <FeatureGroup ref={editableFG}>
         <EditControl

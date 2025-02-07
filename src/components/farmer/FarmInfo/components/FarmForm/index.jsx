@@ -4,7 +4,7 @@ import { Button } from '../../../../ui/button';
 import { Select } from '../../../../ui/select';
 import { Input } from '../../../../ui/input';
 import { useForm } from 'react-hook-form';
-import { FARM_TYPES, CROP_TYPES, LIVESTOCK_TYPES } from '../../constants/farm_constants';
+import { FARM_TYPES, CROP_TYPES, OWNERSHIP_TYPES, LIVESTOCK_TYPES } from '../../constants/farm_constants';
 import { calculateArea } from '../../utils/geometryUtils';
 import { Dialog } from '@headlessui/react';
 
@@ -75,6 +75,53 @@ const FarmForm = ({
                     className="mt-1"
                   />
                 </div>
+                
+                <div>
+                    <label className="block text-sm font-medium text-gray-700">
+                        Ownership Status
+                    </label>
+                    <select
+                        {...register('ownership_status', { required: true })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                    >
+                        <option value="">Select Ownership Type</option>
+                        {OWNERSHIP_TYPES.map(type => (
+                        <option key={type.id} value={type.id}>
+                            {type.label}
+                        </option>
+                        ))}
+                    </select>
+                </div>
+                
+                {watch('ownership_status') === 'leased' && (
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Lease Years
+                        </label>
+                        <Input
+                            type="number"
+                            {...register('lease_years', {
+                            required: 'Years required for leased property'
+                            })}
+                            className="mt-1"
+                        />
+                        </div>
+                        <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Lease Months
+                        </label>
+                        <Input
+                            type="number"
+                            {...register('lease_months', {
+                            required: 'Months required for leased property',
+                            max: { value: 11, message: 'Months should be less than 12' }
+                            })}
+                            className="mt-1"
+                        />
+                        </div>
+                    </div>
+                    )}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">
@@ -109,43 +156,70 @@ const FarmForm = ({
                         </option>
                       ))}
                     </select>
-                  </div>
-                )}
-
-                {(farmType === 'livestock' || farmType === 'both') && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Livestock Type
-                      </label>
-                      <select
-                        {...register('livestock_type', { required: farmType === 'livestock' })}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
-                      >
-                        <option value="">Select Livestock Type</option>
-                        {LIVESTOCK_TYPES.map(type => (
-                          <option key={type.id} value={type.id}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Number of Animals
-                      </label>
-                      <Input
+                    <label className="block text-sm font-medium text-gray-700">
+                        Crop Area (Hectares)
+                        </label>
+                        <Input
                         type="number"
-                        {...register('number_of_animals', {
-                          required: farmType === 'livestock',
-                          min: 1
+                        step="0.01"
+                        {...register('crop_area', {
+                            required: true,
+                            min: 0.01,
+                            max: calculatedArea,
+                            validate: value => parseFloat(value) <= calculatedArea || 
+                            "Crop area cannot exceed farm area"
                         })}
                         className="mt-1"
-                      />
-                    </div>
-                  </>
+                        />
+                  </div>
+                  
                 )}
+                
+                    {(farmType === 'livestock' || farmType === 'both') && (
+                    <>
+                        <div>
+                        <label className="block text-sm font-medium text-gray-700">
+                            Livestock Type
+                        </label>
+                        <select
+                            {...register('livestock_type', { 
+                            required: farmType === 'livestock' ? 'Livestock type is required' : false
+                            })}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                        >
+                            <option value="">Select Livestock Type</option>
+                            {LIVESTOCK_TYPES.map(type => (
+                            <option key={type.id} value={type.id}>
+                                {type.label}
+                            </option>
+                            ))}
+                        </select>
+                        </div>
+
+                        {watch('livestock_type') && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                            Number of Animals
+                            </label>
+                            <Input
+                            type="number"
+                            {...register('number_of_animals', {
+                                required: 'Number of animals is required',
+                                min: {
+                                value: 1,
+                                message: 'Must have at least 1 animal'
+                                },
+                                validate: {
+                                isInteger: v => Number.isInteger(Number(v)) || 'Must be a whole number',
+                                isPositive: v => Number(v) > 0 || 'Must be greater than 0'
+                                }
+                            })}
+                            className="mt-1"
+                            />
+                        </div>
+                        )}
+                    </>
+                    )}
               </div>
 
               <div className="flex justify-end space-x-3">

@@ -1,12 +1,26 @@
-// src/components/farmer/LocationInfo.jsx
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
-import FormInput from '../common/FormInput';
+import React, { useEffect } from 'react';
+import useFarmerStore from '../../stores/useFarmerStore';
 import nigeriaData from '../../utils/nigeriaData.json';
 
 const LocationInfo = () => {
-  const { register, watch } = useFormContext();
-  const selectedState = watch('state');
+  const { formData, setFormData, setStepValidation } = useFarmerStore();
+
+  // Handle input changes
+  const handleInputChange = (field) => (e) => {
+    setFormData({ [field]: e.target.value });
+  };
+
+  // Simple validation
+  useEffect(() => {
+    const isValid = !!(
+      formData.address &&
+      formData.state &&
+      formData.lga &&
+      formData.city
+    );
+    
+    setStepValidation(1, isValid);
+  }, [formData.address, formData.state, formData.lga, formData.city]);
 
   return (
     <div className="space-y-6">
@@ -18,26 +32,40 @@ const LocationInfo = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
         <div className="space-y-4">
-          <FormInput
-            name="address"
-            label="Street Address"
-            required
-            placeholder="Enter street address"
-          />
+          <div className="space-y-1">
+            <label className="form-label">
+              Street Address <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.address || ''}
+              onChange={handleInputChange('address')}
+              className="form-input"
+              placeholder="Enter street address"
+            />
+          </div>
   
-          <FormInput
-            name="community"
-            label="Community"
-            placeholder="Enter community name"
-          />
+          <div className="space-y-1">
+            <label className="form-label">Community</label>
+            <input
+              type="text"
+              value={formData.community || ''}
+              onChange={handleInputChange('community')}
+              className="form-input"
+              placeholder="Enter community name"
+            />
+          </div>
         </div>
   
         {/* Right Column */}
         <div className="space-y-4">
-          <div>
-            <label className="form-label">State</label>
+          <div className="space-y-1">
+            <label className="form-label">
+              State <span className="text-red-500">*</span>
+            </label>
             <select
-              {...register('state')}
+              value={formData.state || ''}
+              onChange={handleInputChange('state')}
               className="form-input"
             >
               <option value="">Select State</option>
@@ -47,30 +75,35 @@ const LocationInfo = () => {
             </select>
           </div>
   
-          <div>
-            <label className="form-label">LGA</label>
+          <div className="space-y-1">
+            <label className="form-label">
+              LGA <span className="text-red-500">*</span>
+            </label>
             <select
-              {...register('lga')}
+              value={formData.lga || ''}
+              onChange={handleInputChange('lga')}
               className="form-input"
-              disabled={!selectedState}
+              disabled={!formData.state}
             >
               <option value="">Select LGA</option>
-              {selectedState && nigeriaData[selectedState]?.map(lga => (
+              {formData.state && nigeriaData[formData.state]?.map(lga => (
                 <option key={lga} value={lga}>{lga}</option>
               ))}
             </select>
           </div>
   
-          <FormInput
-            name="city"
-            label="City"
-            required
-            placeholder="Enter city"
-          />
-  
-          {/* Hidden fields for coordinates - keeping these in case needed for future API integration */}
-          <input type="hidden" {...register('latitude')} />
-          <input type="hidden" {...register('longitude')} />
+          <div className="space-y-1">
+            <label className="form-label">
+              City <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.city || ''}
+              onChange={handleInputChange('city')}
+              className="form-input"
+              placeholder="Enter city"
+            />
+          </div>
         </div>
       </div>
     </div>
