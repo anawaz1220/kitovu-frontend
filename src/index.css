@@ -45,3 +45,10 @@
     @apply bg-white rounded-lg shadow-sm p-6;
   }
 }
+
+.current-position-marker {
+  width: 16px !important;
+  height: 16px !important;
+  margin-left: -8px !important;
+  margin-top: -8px !important;
+}
