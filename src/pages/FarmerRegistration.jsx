@@ -3,14 +3,15 @@ import { useForm, FormProvider } from 'react-hook-form';
 import PersonalInfo from '../components/farmer/PersonalInfo';
 import LocationInfo from '../components/farmer/LocationInfo';
 import KYCInfo from '../components/farmer/KYCInfo';
-import FarmInfo from '../components/farmer/FarmInfo/index';
+import FarmInfo from '../components/farmer/FarmInfo';
+
 import CooperativeInfo from '../components/farmer/CooperativeInfo/index';
 
 const STEPS = [
   { id: 'personal', title: 'Personal Information', component: PersonalInfo },
   { id: 'location', title: 'Farmer Address', component: LocationInfo },
+  { id: 'farm', title: 'Farm Information', component: FarmInfo }, 
   { id: 'kyc', title: 'Identity Verification', component: KYCInfo },
-  { id: 'farm', title: 'Farm Information', component: FarmInfo },
   { id: 'cooperative', title: 'Cooperative Details', component: CooperativeInfo }
 ];
 
@@ -22,7 +23,7 @@ const FarmerRegistration = () => {
 
   const onSubmit = async (data) => {
     // Will be replaced with API call later
-    console.log('Form submitted:', data);
+    // console.log('Form submitted:', data);
   };
 
   const nextStep = () => {
