@@ -6,6 +6,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import FarmerRegistration from './pages/FarmerRegistration';
+import Dashboard from './pages/Dashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,6 +26,14 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route
               path="/"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/farmer-registration"
               element={
                 <ProtectedRoute>
                   <Layout>

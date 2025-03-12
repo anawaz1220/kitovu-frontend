@@ -52,3 +52,14 @@
   margin-left: -8px !important;
   margin-top: -8px !important;
 }
+
+.location-dot {
+  z-index: 1000;
+}
+
+.accuracy-info {
+  font-family: system-ui, -apple-system, sans-serif;
+  color: #444;
+  background: white;
+  z-index: 1000;
+}

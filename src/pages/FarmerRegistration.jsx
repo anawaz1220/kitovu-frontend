@@ -172,25 +172,24 @@ const FarmerRegistration = () => {
       };
 
       // Prepare Farm Data
-      const farmData = farms[0] ? {
-        farm_type: farms[0].farm_type,
-        ownership_status: farms[0].ownership_status,
-        lease_years: farms[0].lease_years || null,
-        lease_months: farms[0].lease_months || null,
-        area: parseFloat(farms[0].area),
-        crop_type: farms[0].crop_type || null,
-        crop_area: farms[0].crop_area ? parseFloat(farms[0].crop_area) : null,
-        livestock_type: farms[0].livestock_type || null,
-        number_of_animals: farms[0].number_of_animals ? parseInt(farms[0].number_of_animals) : null,
-        farm_latitude: farms[0].geometry.coordinates[0][0][0][1],
-        farm_longitude: farms[0].geometry.coordinates[0][0][0][0],
-        // Format geometry as WKT MULTIPOLYGON
+      const farmData = farms.map(farm => ({
+        farm_type: farm.farm_type,
+        ownership_status: farm.ownership_status,
+        lease_years: farm.lease_years || null,
+        lease_months: farm.lease_months || null,
+        area: parseFloat(farm.area),
+        crop_type: farm.crop_type || null,
+        crop_area: farm.crop_area ? parseFloat(farm.crop_area) : null,
+        livestock_type: farm.livestock_type || null,
+        number_of_animals: farm.number_of_animals ? parseInt(farm.number_of_animals) : null,
+        farm_latitude: farm.geometry.coordinates[0][0][0][1],
+        farm_longitude: farm.geometry.coordinates[0][0][0][0],
         farm_geometry: `MULTIPOLYGON(((${
-          farms[0].geometry.coordinates[0][0]
+          farm.geometry.coordinates[0][0]
             .map(coord => `${coord[0]} ${coord[1]}`)
             .join(', ')
         })))`
-      } : null;
+      }));
 
       // Prepare Cooperative Data
       const affiliationData = {
@@ -199,6 +198,12 @@ const FarmerRegistration = () => {
         activities: formData.member_of_cooperative === 'true' ? 
           formData.cooperativeActivities.join(', ') : null
       };
+
+      console.log('Farm data being sent:', {
+        farmerData,
+        farmData,
+        affiliationData
+      });
 
       // Submit to API
       const response = await farmerService.createFarmer(
