@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import { defaultPosition, defaultZoom, basemapUrls } from './utils/mapConfig';
 import MapUpdater from './MapUpdater';
 import DataLayers from './DataLayers';
+import MeasurementControl from './MeasurementControl';
 
 const MapContainer = ({ basemap = 'streets', activeLayers }) => {
   return (
@@ -23,6 +24,7 @@ const MapContainer = ({ basemap = 'streets', activeLayers }) => {
         <ZoomControl position="bottomright" />
         <MapUpdater basemap={basemap} />
         <DataLayers activeLayers={activeLayers} />
+        <MeasurementControl />
       </LeafletMap>
     </div>
   );
