@@ -1,10 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Camera, Upload, RotateCcw } from 'lucide-react';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png'];
 
-// Moved compressImage function here for now - we can move it to utils later
+
 const compressImage = async (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -54,45 +54,49 @@ const compressImage = async (file) => {
   });
 };
 
-const PhotoCapture = ({ 
-  label, 
-  photo, 
-  onPhotoCapture, 
-  onPhotoRemove, 
-  required = false 
-}) => {
+const PhotoCapture = ({ label, photo, onPhotoCapture, onPhotoRemove, required = false }) => {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [facingMode, setFacingMode] = useState('user');
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
 
+  useEffect(() => {
+    async function checkCameras() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setHasMultipleCameras(videoDevices.length > 1);
+    }
+    checkCameras();
+  }, []);
   
-const startCamera = async () => {
+  const startCamera = async () => {
     try {
-      // Set camera open state first
       setIsCameraOpen(true);
       
-      // Wait for a brief moment to ensure video element is mounted
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Check if video element exists
       if (!videoRef.current) {
         throw new Error('Video element not initialized');
       }
   
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'user',
+          facingMode: facingMode, // Use the facingMode state variable
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
       });
   
-      // Double check video element still exists
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
+
+        // Check if device has multiple cameras after successful stream
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        setHasMultipleCameras(videoDevices.length > 1);
       } else {
-        // Clean up stream if video element is gone
         stream.getTracks().forEach(track => track.stop());
         throw new Error('Video element not available');
       }
@@ -100,7 +104,6 @@ const startCamera = async () => {
       console.error('Error accessing camera:', error);
       setIsCameraOpen(false);
       
-      // More user-friendly error messages
       let errorMessage = 'Error accessing camera. ';
       if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         errorMessage += 'Please ensure camera permissions are granted in your browser settings.';
@@ -108,10 +111,24 @@ const startCamera = async () => {
         errorMessage += 'No camera device found. Please ensure your camera is connected.';
       } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
         errorMessage += 'Your camera might be in use by another application.';
+      } else if (error.name === 'OverconstrainedError') {
+        errorMessage += 'The selected camera is not available. Switching to default camera.';
+        // If facing mode fails, try again with default camera
+        setFacingMode('user');
+        startCamera();
+        return;
       } else {
         errorMessage += 'Please try again or use the upload option.';
       }
       alert(errorMessage);
+    }
+  };
+
+const switchCamera = () => {
+    setFacingMode(prev => prev === 'user' ? 'environment' : 'user');
+    if (streamRef.current) {
+      stopCamera();
+      startCamera();
     }
   };
 
@@ -179,6 +196,16 @@ const startCamera = async () => {
             className="w-full h-64 object-cover rounded-lg"
             style={{ minHeight: '256px' }} 
           />
+          
+          {isCameraOpen && hasMultipleCameras && (
+            <button
+              type="button"
+              onClick={switchCamera}
+              className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-lg"
+            >
+              <RotateCcw className="h-6 w-6 text-gray-700" />
+            </button>
+          )}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-4">
             <button
               type="button"

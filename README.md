@@ -22,7 +22,7 @@ A Progressive Web App (PWA) for managing farmer data collection, farm mapping an
 1. Clone the repository:
    ```bash
    git clone [repository-url]
-   cd kitovu-frontend
+   cd trakos-frontend
    ```
 
 2. Install dependencies:
@@ -39,16 +39,6 @@ A Progressive Web App (PWA) for managing farmer data collection, farm mapping an
    ```bash
    npm run build
    ```
-
-## Features
-
-- 📱 Progressive Web App with offline support
-- 🗺️ Interactive farm mapping with polygon drawing
-- 👨‍🌾 Comprehensive farmer data management
-- 📸 Camera integration for photo capture
-- 🌐 GPS location tracking
-- 💾 Offline data persistence
-- 🔄 Automatic data sync
 
 ## Project Structure
 
@@ -82,24 +72,6 @@ src/
 - Use `npm run build` for production build
 - Use `npm run preview` to preview production build
 
-## PWA Features
-
-- Offline-first functionality
-- Automatic data synchronization
-- Push notifications support
-- Installable on mobile devices
-
-## API Integration
-
-The app is designed to work with a RESTful API. Check `api-docs.md` for API documentation.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
 
 ## License
 

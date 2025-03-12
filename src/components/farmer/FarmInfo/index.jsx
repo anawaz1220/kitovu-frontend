@@ -14,7 +14,7 @@ const FarmInfo = () => {
   useEffect(() => {
     // Validate that at least one farm is added
     const isValid = farms.length > 0;
-    console.log('Farm validation:', { isValid, farmCount: farms.length });
+    // console.log('Farm validation:', { isValid, farmCount: farms.length });
     setStepValidation(2, isValid);
   }, [farms, setStepValidation]);
 

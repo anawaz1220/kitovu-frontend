@@ -23,6 +23,24 @@ const PersonalInfo = () => {
   }, []);
 
   useEffect(() => {
+    const handleLocationUpdate = (event) => {
+      const { latitude, longitude, accuracy } = event.detail;
+      setFormData({
+        user_latitude: latitude,
+        user_longitude: longitude,
+        location_accuracy: accuracy,
+        location_timestamp: new Date().toISOString()
+      });
+    };
+  
+    window.addEventListener('locationUpdated', handleLocationUpdate);
+    
+    return () => {
+      window.removeEventListener('locationUpdated', handleLocationUpdate);
+    };
+  }, [setFormData]);
+
+  useEffect(() => {
     const isValid = !!(
       formData.firstName?.length >= 2 &&
       formData.lastName?.length >= 2 &&
@@ -39,18 +57,35 @@ const PersonalInfo = () => {
   const requestLocation = async () => {
     setIsRequestingLocation(true);
     setLocationError(null);
-
+  
     try {
       const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 5000,
-          maximumAge: 0
-        });
+        navigator.geolocation.getCurrentPosition(
+          resolve, 
+          reject,
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+          }
+        );
       });
-
-      const { latitude, longitude } = position.coords;
-      console.log('Setting location:', { latitude, longitude }); 
+  
+      const { latitude, longitude, accuracy } = position.coords;
+      
+      // Log detailed location info
+      console.log('Location details:', {
+        latitude,
+        longitude,
+        accuracy,
+        timestamp: position.timestamp,
+        browser: navigator.userAgent,
+        platformInfo: {
+          platform: navigator.platform,
+          vendor: navigator.vendor,
+          language: navigator.language
+        }
+      });
       setFormData({
         user_latitude: latitude,
         user_longitude: longitude

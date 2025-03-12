@@ -104,8 +104,8 @@ const MapSection = () => {
 
     const loadFarms = async () => {
       try {
-        const data = await farmService.getFarmGeometries();
-        console.log('Received farm geometries:', data.geometries);
+        // const data = await farmService.getFarmGeometries();
+        
         setExistingFarms(data.geometries);
       } catch (error) {
         console.error('Error loading farms:', error);
@@ -221,16 +221,22 @@ const MapSection = () => {
         <MapController onMapReady={setMapInstance} />
         
         {mapLayer === 'satellite' ? (
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution="Tiles &copy; Esri &mdash; Source: Esri"
-          />
-        ) : (
-          <TileLayer
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          />
-        )}
+        <TileLayer
+          url={`https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=AIzaSyDzO4pxK2nMTz5xjpESMYZ0ZysAG1kJuxw`}
+          attribution="&copy; Google Maps"
+          maxZoom={20}
+          minZoom={5}
+          tileSize={256}
+        />
+      ) : (
+        <TileLayer
+          url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+          attribution="&copy; Google Maps"
+          maxZoom={20}
+          minZoom={5}
+          tileSize={256}
+        />
+      )}
 
         {/* Existing farms */}
         {farms.map((farm, index) => (
