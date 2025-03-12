@@ -13,8 +13,7 @@ const Layout = ({ children, showDrawerToggle = false, onDrawerToggle, hideFooter
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      
-      <header className="bg-white shadow-sm relative" style={{ zIndex: 1001 }}>
+      <header className="bg-white shadow-sm relative" style={{ zIndex: 2000 }}>
         <div className="w-full px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -24,7 +23,8 @@ const Layout = ({ children, showDrawerToggle = false, onDrawerToggle, hideFooter
                   variant="ghost" 
                   size="sm" 
                   onClick={onDrawerToggle}
-                  className="text-gray-500 hover:text-kitovu-purple"
+                  className="text-gray-500 hover:text-kitovu-purple z-2000"
+                  style={{ zIndex: 2000 }}
                 >
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -38,7 +38,7 @@ const Layout = ({ children, showDrawerToggle = false, onDrawerToggle, hideFooter
                   className="h-8 w-auto cursor-pointer"
                   onClick={() => navigate('/')}
                 />
-                {/* <span className="ml-2 text-lg font-semibold text-kitovu-purple">TRAK OS</span> */}
+                <span className="ml-2 text-lg font-semibold text-kitovu-purple">TRAK OS</span>
               </div>
             </div>
             

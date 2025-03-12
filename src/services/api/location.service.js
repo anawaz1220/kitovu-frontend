@@ -10,10 +10,21 @@ import api from './axios.config';
  */
 export const fetchFarmersCountByLocation = async (params) => {
   try {
+    console.log('Fetching farmers count with params:', params);
     const { data } = await api.get('/locations/farmers-count', { params });
+    
+    // For testing purposes (comment out or remove in production)
+    console.log('API response data:', data);
+    
+    // Return data in GeoJSON format (assuming backend returns proper format)
     return data;
   } catch (error) {
     console.error('Error fetching farmers count by location:', error);
+    // For debugging
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
     throw error;
   }
 };
@@ -27,10 +38,20 @@ export const fetchFarmersCountByLocation = async (params) => {
  */
 export const fetchCropsByLocation = async (params) => {
   try {
+    console.log('Fetching crops with params:', params);
     const { data } = await api.get('/locations/crops', { params });
+    
+    // For testing purposes
+    console.log('API response data:', data);
+    
     return data;
   } catch (error) {
     console.error('Error fetching crops by location:', error);
+    // For debugging
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
     throw error;
   }
 };
