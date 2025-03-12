@@ -21,13 +21,19 @@ const LeftDrawer = ({
     { id: 'farmers', name: 'Farmers Distribution', description: 'Shows the distribution of farmers by region' },
     { id: 'cropDistribution', name: 'Crop Distribution', description: 'Displays crop types and areas by region' }
   ];
+  
+  const adminBoundaries = [
+    { id: 'countryBoundary', name: 'Country Boundary', description: 'Nigeria national boundary' },
+    { id: 'stateBoundary', name: 'State Boundaries', description: 'Nigerian state boundaries' },
+    { id: 'lgaBoundary', name: 'LGA Boundaries', description: 'Local Government Areas' }
+  ];
 
   return (
     <div 
-        className={`bg-white w-64 shadow-lg h-full border-r transition-all duration-300 overflow-y-auto
-            ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ position: 'absolute', top: 0, bottom: 0, left: 0, zIndex: 1000 }}
-        >
+      className={`bg-white w-64 shadow-lg h-full border-r transition-all duration-300 overflow-y-auto
+        ${isOpen ? 'translate-x-0' : '-translate-x-full'} z-20`}
+      style={{ position: 'absolute', top: 0, bottom: 0, left: 0 }}
+    >
       {/* Drawer Header */}
       <div className="p-4 flex justify-between items-center border-b">
         <h2 className="text-lg font-medium text-kitovu-purple">Map Controls</h2>
@@ -39,11 +45,37 @@ const LeftDrawer = ({
         </button>
       </div>
 
-      {/* Layers Section */}
+      {/* Admin Boundaries Section */}
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <Layers className="h-5 w-5 text-kitovu-purple mr-2" />
-          <h3 className="text-md font-medium">Layers</h3>
+          <h3 className="text-md font-medium">Admin Boundaries</h3>
+        </div>
+        
+        <div className="space-y-3">
+          {adminBoundaries.map(layer => (
+            <div key={layer.id} className="flex items-start">
+              <input
+                type="checkbox"
+                id={`layer-${layer.id}`}
+                checked={activeLayers[layer.id] || false}
+                onChange={() => onLayerToggle(layer.id)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor={`layer-${layer.id}`} className="ml-2 block text-sm">
+                <span className="font-medium">{layer.name}</span>
+                <p className="text-xs text-gray-500">{layer.description}</p>
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Data Layers Section */}
+      <div className="p-4 border-b">
+        <div className="flex items-center mb-3">
+          <Layers className="h-5 w-5 text-kitovu-purple mr-2" />
+          <h3 className="text-md font-medium">Data Layers</h3>
         </div>
         
         <div className="space-y-3">

@@ -6,13 +6,18 @@ import { Menu } from 'lucide-react';
 
 const Dashboard = () => {
   const [drawerOpen, setDrawerOpen] = useState(true);
-  const [selectedBasemap, setSelectedBasemap] = useState('dark');
+  // Change default basemap from 'dark' to 'streets'
+  const [selectedBasemap, setSelectedBasemap] = useState('streets');
   const [activeLayers, setActiveLayers] = useState({
-    farmers: true,
+    farmers: false,
     cropDistribution: false,
+    countryBoundary: false,
+    stateBoundary: true,
+    lgaBoundary: false,
   });
 
   const toggleDrawer = () => {
+    console.log("Toggling drawer", !drawerOpen);
     setDrawerOpen(!drawerOpen);
   };
 
