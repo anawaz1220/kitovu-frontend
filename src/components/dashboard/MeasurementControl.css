@@ -1,0 +1,98 @@
+/* MeasurementControl.css */
+
+.measurement-control {
+  padding: 5px;
+  background-color: white !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.4) !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.measurement-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-bottom: 5px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #777;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.measurement-button:last-child {
+  margin-bottom: 0;
+}
+
+.measurement-button:hover {
+  background-color: #f0e6f7;
+  color: #7a49a5;
+}
+
+.measurement-button.active {
+  background-color: #7a49a5 !important;
+  color: white !important;
+}
+
+.measurement-tooltip {
+  background-color: #7a49a5 !important;
+  border: none !important;
+  color: white !important;
+  font-weight: bold !important;
+  padding: 5px 10px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+  z-index: 1000 !important;
+  opacity: 1 !important;
+  text-align: center;
+  pointer-events: none;
+}
+
+.segment-tooltip {
+  font-size: 11px;
+  background-color: rgba(122, 73, 165, 0.8) !important;
+}
+
+.total-tooltip {
+  font-size: 12px;
+  background-color: rgba(122, 73, 165, 1) !important;
+}
+
+.leaflet-tooltip-top.measurement-tooltip:before {
+  border-top-color: #7a49a5 !important;
+}
+
+/* Ensure the tooltips are always visible */
+.leaflet-tooltip.measurement-tooltip {
+  opacity: 1 !important;
+  z-index: 1000 !important;
+}
+
+/* Style the draw tools */
+.leaflet-draw-tooltip {
+  background-color: rgba(122, 73, 165, 0.9) !important;
+  border: 1px solid #7a49a5 !important;
+  color: white !important;
+  font-weight: bold !important;
+}
+
+.leaflet-draw-tooltip:before {
+  border-right-color: #7a49a5 !important;
+}
+
+.leaflet-draw-actions {
+  left: 0 !important;
+}
+
+.leaflet-draw-actions a {
+  background-color: #7a49a5 !important;
+  color: white !important;
+}
+
+.leaflet-draw-actions a:hover {
+  background-color: #9b6db6 !important;
+}
