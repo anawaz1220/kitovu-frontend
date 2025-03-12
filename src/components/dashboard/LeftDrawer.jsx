@@ -1,7 +1,8 @@
 // src/components/dashboard/LeftDrawer.jsx
 import React from 'react';
-import { X, Layers, Map } from 'lucide-react';
+import { X, Layers, Map, BarChart } from 'lucide-react';
 import { Button } from '../ui/button';
+import { BASEMAP_OPTIONS, LAYER_OPTIONS } from '../../config/mapSettings';
 
 const LeftDrawer = ({ 
   isOpen, 
@@ -9,24 +10,24 @@ const LeftDrawer = ({
   selectedBasemap,
   onBasemapChange,
   activeLayers,
-  onLayerToggle
+  onLayerToggle,
+  onDistributionLayerSelect
 }) => {
-  const basemaps = [
-    { id: 'streets', name: 'Streets' },
-    { id: 'satellite', name: 'Satellite' },
-    { id: 'dark', name: 'Dark Mode' }
-  ];
+  // Filter layers by category
+  const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
+  const distributionLayers = LAYER_OPTIONS.filter(layer => layer.category === 'distribution');
 
-  const layers = [
-    { id: 'farmers', name: 'Farmers Distribution', description: 'Shows the distribution of farmers by region' },
-    { id: 'cropDistribution', name: 'Crop Distribution', description: 'Displays crop types and areas by region' }
-  ];
-  
-  const adminBoundaries = [
-    { id: 'countryBoundary', name: 'Country Boundary', description: 'Nigeria national boundary' },
-    { id: 'stateBoundary', name: 'State Boundaries', description: 'Nigerian state boundaries' },
-    { id: 'lgaBoundary', name: 'LGA Boundaries', description: 'Local Government Areas' }
-  ];
+  // Handle selection of a distribution layer (radio button)
+  const handleDistributionLayerChange = (layerId) => {
+    // If the layer is already active, deselect it
+    if (activeLayers[layerId]) {
+      // Just toggle this layer off without selecting any other
+      onLayerToggle(layerId);
+    } else {
+      // Call parent handler that will toggle off all other distribution layers
+      onDistributionLayerSelect(layerId);
+    }
+  };
 
   return (
     <div 
@@ -60,37 +61,36 @@ const LeftDrawer = ({
                 id={`layer-${layer.id}`}
                 checked={activeLayers[layer.id] || false}
                 onChange={() => onLayerToggle(layer.id)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-kitovu-purple focus:ring-kitovu-purple"
+                className="mt-1 h-4 w-4 rounded border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
               />
               <label htmlFor={`layer-${layer.id}`} className="ml-2 block text-sm">
                 <span className="font-medium">{layer.name}</span>
-                <p className="text-xs text-gray-500">{layer.description}</p>
               </label>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Data Layers Section */}
+      {/* Distribution Layers Section */}
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
-          <Layers className="h-5 w-5 text-kitovu-purple mr-2" />
-          <h3 className="text-md font-medium">Data Layers</h3>
+          <BarChart className="h-5 w-5 text-kitovu-purple mr-2" />
+          <h3 className="text-md font-medium">Distribution Layers</h3>
         </div>
         
         <div className="space-y-3">
-          {layers.map(layer => (
+          {distributionLayers.map(layer => (
             <div key={layer.id} className="flex items-start">
               <input
-                type="checkbox"
+                type="radio"
                 id={`layer-${layer.id}`}
+                name="distributionLayer" // All share same name to make them a radio group
                 checked={activeLayers[layer.id] || false}
-                onChange={() => onLayerToggle(layer.id)}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-kitovu-purple focus:ring-kitovu-purple"
+                onChange={() => handleDistributionLayerChange(layer.id)}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
               />
               <label htmlFor={`layer-${layer.id}`} className="ml-2 block text-sm">
                 <span className="font-medium">{layer.name}</span>
-                <p className="text-xs text-gray-500">{layer.description}</p>
               </label>
             </div>
           ))}
@@ -105,7 +105,7 @@ const LeftDrawer = ({
         </div>
         
         <div className="space-y-2">
-          {basemaps.map(basemap => (
+          {BASEMAP_OPTIONS.map(basemap => (
             <div key={basemap.id} className="flex items-center">
               <input
                 type="radio"
@@ -113,7 +113,7 @@ const LeftDrawer = ({
                 name="basemap"
                 checked={selectedBasemap === basemap.id}
                 onChange={() => onBasemapChange(basemap.id)}
-                className="h-4 w-4 border-gray-300 text-kitovu-purple focus:ring-kitovu-purple"
+                className="h-4 w-4 border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
               />
               <label htmlFor={`basemap-${basemap.id}`} className="ml-2 block text-sm font-medium">
                 {basemap.name}

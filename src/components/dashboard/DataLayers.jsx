@@ -1,129 +1,43 @@
 // src/components/dashboard/DataLayers.jsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { GeoJSON, useMap } from 'react-leaflet';
-import { fetchFarmersCountByLocation, fetchCropsByLocation } from '../../services/api/location.service';
-import { formatGeoJsonFromResponse } from './utils/mapConfig';
 import { 
-  farmersStyle, 
-  cropsStyle, 
   countryStyle, 
   stateStyle, 
   lgaStyle 
 } from './utils/mapStyles';
 import {
-  onEachFarmerFeature,
-  onEachCropFeature,
   onEachStateFeature,
   onEachLGAFeature,
   safelyFitBounds
 } from './utils/mapInteractions';
+import DistributionLayer from './DistributionLayer';
+import useMapData from '../../hooks/useMapData';
 
+/**
+ * Component that renders all map data layers based on active selections
+ */
 const DataLayers = ({ activeLayers }) => {
-  const [farmersData, setFarmersData] = useState(null);
-  const [cropsData, setCropsData] = useState(null);
-  const [stateData, setStateData] = useState(null);
-  const [lgaData, setLgaData] = useState(null);
-  const [countryData, setCountryData] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
+  // Use our custom hook to fetch and manage all data
+  const {
+    farmerStateData,
+    farmerLGAData,
+    commodityStateData,
+    commodityLGAData,
+    stateData,
+    lgaData,
+    countryData,
+    isLoading,
+    error
+  } = useMapData(activeLayers);
   
+  // References for layer bounds
   const countryLayerRef = useRef(null);
   const stateLayerRef = useRef(null);
   const lgaLayerRef = useRef(null);
   
   const map = useMap();
 
-  // Fetch country boundary GeoJSON
-  useEffect(() => {
-    const fetchCountryData = async () => {
-      // Don't fetch if we already have the data
-      if (countryData) return;
-      
-      try {
-        const response = await fetch('/nigeria_boundary.geojson');
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        const data = await response.json();
-        setCountryData(data);
-      } catch (error) {
-        console.error('Error fetching country boundary:', error);
-      }
-    };
-    
-    if (activeLayers.countryBoundary) {
-      fetchCountryData();
-    }
-  }, [activeLayers.countryBoundary, countryData]);
-
-  // Fetch data layers based on active layers
-  useEffect(() => {
-    const fetchData = async () => {
-      // Fetch farmers data by LGA
-      if (activeLayers.farmers && !farmersData) {
-        setIsLoading(true);
-        try {
-          const data = await fetchFarmersCountByLocation({ type: 'LGA' });
-          setFarmersData(data);
-        } catch (error) {
-          console.error('Error fetching farmers data:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-
-      // Fetch crop distribution data
-      if (activeLayers.cropDistribution && !cropsData) {
-        setIsLoading(true);
-        try {
-          const data = await fetchCropsByLocation({ type: 'LGA' });
-          setCropsData(data);
-        } catch (error) {
-          console.error('Error fetching crops data:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      
-      // Fetch state boundaries with farmer count
-      if (activeLayers.stateBoundary) {
-        setIsLoading(true);
-        try {
-          console.log('Fetching state boundaries...');
-          const data = await fetchFarmersCountByLocation({ type: 'State' });
-          console.log('State boundaries data:', data);
-          
-          // Convert data to proper GeoJSON format
-          const geoJsonData = formatGeoJsonFromResponse(data);
-          setStateData(geoJsonData);
-        } catch (error) {
-          console.error('Error fetching state boundaries:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-      
-      // Fetch LGA boundaries with farmer count
-      if (activeLayers.lgaBoundary) {
-        setIsLoading(true);
-        try {
-          console.log('Fetching LGA boundaries...');
-          const data = await fetchFarmersCountByLocation({ type: 'LGA' });
-          console.log('LGA boundaries data:', data);
-          
-          // Convert data to proper GeoJSON format
-          const geoJsonData = formatGeoJsonFromResponse(data);
-          setLgaData(geoJsonData);
-        } catch (error) {
-          console.error('Error fetching LGA boundaries:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-  }, [activeLayers]);
-  
   // Handle layer visibility and bounds fitting
   useEffect(() => {
     if (activeLayers.countryBoundary && countryData && countryLayerRef.current) {
@@ -138,6 +52,12 @@ const DataLayers = ({ activeLayers }) => {
       safelyFitBounds(map, lgaLayerRef);
     }
   }, [activeLayers, countryData, stateData, lgaData, map]);
+
+  // Show loading or error state if needed
+  if (error) {
+    console.error('Error loading map data:', error);
+    // Could show an error overlay or message on the map if needed
+  }
 
   return (
     <>
@@ -161,7 +81,6 @@ const DataLayers = ({ activeLayers }) => {
           onEachFeature={onEachStateFeature}
           ref={(el) => {
             stateLayerRef.current = el;
-            // Try to fit bounds after layer is rendered
             if (el && activeLayers.stateBoundary) {
               safelyFitBounds(map, { current: el });
             }
@@ -178,7 +97,6 @@ const DataLayers = ({ activeLayers }) => {
           onEachFeature={onEachLGAFeature}
           ref={(el) => {
             lgaLayerRef.current = el;
-            // Try to fit bounds after layer is rendered
             if (el && activeLayers.lgaBoundary) {
               safelyFitBounds(map, { current: el });
             }
@@ -186,24 +104,23 @@ const DataLayers = ({ activeLayers }) => {
         />
       )}
       
-      {/* Farmers Distribution Layer */}
-      {activeLayers.farmers && farmersData && (
-        <GeoJSON 
-          key="farmers-distribution"
-          data={farmersData} 
-          style={farmersStyle}
-          onEachFeature={onEachFarmerFeature}
-        />
-      )}
-      
-      {/* Crop Distribution Layer */}
-      {activeLayers.cropDistribution && cropsData && (
-        <GeoJSON 
-          key="crop-distribution"
-          data={cropsData} 
-          style={cropsStyle}
-          onEachFeature={onEachCropFeature}
-        />
+      {/* Distribution Layers */}
+      <DistributionLayer 
+        activeLayers={activeLayers}
+        farmerStateData={farmerStateData}
+        farmerLGAData={farmerLGAData}
+        commodityStateData={commodityStateData}
+        commodityLGAData={commodityLGAData}
+      />
+
+      {/* Loading indicator could be added here */}
+      {isLoading && (
+        <div 
+          className="absolute bottom-4 right-4 bg-white px-3 py-2 rounded shadow z-1000 text-sm"
+          style={{ zIndex: 1000 }}
+        >
+          Loading map data...
+        </div>
       )}
     </>
   );

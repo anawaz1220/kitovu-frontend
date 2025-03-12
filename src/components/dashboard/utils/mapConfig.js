@@ -1,8 +1,9 @@
 // src/components/dashboard/utils/mapConfig.js
+import { DEFAULT_MAP_CENTER, DEFAULT_MAP_ZOOM } from '../../../config/mapSettings';
 
-// Default center position for Nigeria
-export const defaultPosition = [9.0820, 8.6753];
-export const defaultZoom = 6;
+// Export default center position from centralized config
+export const defaultPosition = DEFAULT_MAP_CENTER;
+export const defaultZoom = DEFAULT_MAP_ZOOM;
 
 // Basemap URL configurations
 export const basemapUrls = {
@@ -11,7 +12,11 @@ export const basemapUrls = {
   dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
 };
 
-// Format GeoJSON from API response
+/**
+ * Format GeoJSON from API response
+ * @param {Array} data - Array of location data with geom field
+ * @returns {Object|null} GeoJSON FeatureCollection or null if invalid data
+ */
 export const formatGeoJsonFromResponse = (data) => {
   if (!data || !Array.isArray(data) || data.length === 0) {
     return null;
