@@ -31,6 +31,7 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\utils
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\images
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\react.svg
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\images\default-user.svg
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\images\kitovu-logo.svg
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\images\TrakOS-app-icon.png
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\assets\images\trakos-logo.jpg
@@ -47,12 +48,14 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\d
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\DistributionLayer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerDensityLayer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerDensityLegend.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerSearch.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\index.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\LeftDrawer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapContainer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapUpdater.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MeasurementControl.css
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MeasurementControl.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\RightDrawer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\commodityUtils.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\densityUtils.js
@@ -105,6 +108,7 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\axios.config.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farm.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farmer.service.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farmerQuery.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\location.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmerStore.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmStore.js

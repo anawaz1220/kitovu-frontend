@@ -1,8 +1,9 @@
 // src/components/dashboard/LeftDrawer.jsx
 import React from 'react';
-import { X, Layers, Map, BarChart } from 'lucide-react';
+import { X, Layers, Map, BarChart, Search } from 'lucide-react';
 import { Button } from '../ui/button';
 import { BASEMAP_OPTIONS, LAYER_OPTIONS } from '../../config/mapSettings';
+import FarmerSearch from './FarmerSearch';
 
 const LeftDrawer = ({ 
   isOpen, 
@@ -11,7 +12,8 @@ const LeftDrawer = ({
   onBasemapChange,
   activeLayers,
   onLayerToggle,
-  onDistributionLayerSelect
+  onDistributionLayerSelect,
+  onSelectFarmer
 }) => {
   // Filter layers by category
   const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
@@ -45,6 +47,9 @@ const LeftDrawer = ({
           <X className="h-5 w-5" />
         </button>
       </div>
+      
+      {/* Farmer Search Section - Add this before the Admin Boundaries section */}
+      <FarmerSearch onSelectFarmer={onSelectFarmer} />
 
       {/* Admin Boundaries Section */}
       <div className="p-4 border-b">
