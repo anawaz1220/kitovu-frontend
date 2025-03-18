@@ -1,7 +1,7 @@
 // src/components/dashboard/FarmerSearch.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, Loader2 } from 'lucide-react';
-import { farmerQueryService } from '../../services/api/farmerQuery.service';
+import { getFarmers } from '../../services/api/farmerQuery.service.js';
 import { useQuery } from '@tanstack/react-query';
 
 const FarmerSearch = ({ onSelectFarmer }) => {
@@ -12,7 +12,7 @@ const FarmerSearch = ({ onSelectFarmer }) => {
   // Fetch farmers data
   const { data: farmers, isLoading, isError, error } = useQuery({
     queryKey: ['farmers'],
-    queryFn: () => farmerQueryService.getFarmers(),
+    queryFn: () => getFarmers(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
