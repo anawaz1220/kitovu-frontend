@@ -11,7 +11,7 @@ import LayerControls from './LayerControls';
 import FarmForm from '../FarmForm';
 import { useTraceMode } from '../../hooks/useTraceMode';
 import useFarmStore from '../../../../../stores/useFarmStore';
-import { farmService } from '../../../../../services/api/farm.service';
+import { farmService } from '../../../../../services/api/farm.service_old';
 import { checkOverlap } from '../../utils/geometryUtils';
 import LocationButton from './LocationButton';
 

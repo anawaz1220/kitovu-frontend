@@ -1,9 +1,16 @@
 // src/components/dashboard/LeftDrawer.jsx
 import React from 'react';
-import { X, Layers, Map, BarChart, Search } from 'lucide-react';
+import { X, Layers, Map, BarChart, Search, LandPlot } from 'lucide-react';
 import { Button } from '../ui/button';
 import { BASEMAP_OPTIONS, LAYER_OPTIONS } from '../../config/mapSettings';
 import FarmerSearch from './FarmerSearch';
+
+// Farm type options for dropdown
+const FARM_TYPES = [
+  { id: 'crop_farming', name: 'Crop Farming' },
+  { id: 'livestock_farming', name: 'Livestock Farming' },
+  { id: 'mixed_farming', name: 'Mixed Farming' }
+];
 
 const LeftDrawer = ({ 
   isOpen, 
@@ -13,7 +20,18 @@ const LeftDrawer = ({
   activeLayers,
   onLayerToggle,
   onDistributionLayerSelect,
-  onSelectFarmer
+  onSelectFarmer,
+  // Farm layer props
+  onFarmLayerSelect,
+  activeFarmLayer,
+  farmTypeFilter,
+  onFarmTypeFilterChange = () => {},
+  cropTypeFilter,
+  onCropTypeFilterChange = () => {},
+  livestockTypeFilter,
+  onLivestockTypeFilterChange = () => {},
+  cropOptions = [],
+  livestockOptions = []
 }) => {
   // Filter layers by category
   const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
@@ -29,6 +47,11 @@ const LeftDrawer = ({
       // Call parent handler that will toggle off all other distribution layers
       onDistributionLayerSelect(layerId);
     }
+  };
+
+  // Handle farm layer selection
+  const handleFarmLayerChange = (layerId) => {
+    onFarmLayerSelect(layerId);
   };
 
   return (
@@ -48,7 +71,7 @@ const LeftDrawer = ({
         </button>
       </div>
       
-      {/* Farmer Search Section - Add this before the Admin Boundaries section */}
+      {/* Farmer Search Section */}
       <FarmerSearch onSelectFarmer={onSelectFarmer} />
 
       {/* Admin Boundaries Section */}
@@ -80,7 +103,7 @@ const LeftDrawer = ({
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <BarChart className="h-5 w-5 text-kitovu-purple mr-2" />
-          <h3 className="text-md font-medium">Distribution Layers</h3>
+          <h3 className="text-md font-medium">Farmer Distribution</h3>
         </div>
         
         <div className="space-y-3">
@@ -99,6 +122,136 @@ const LeftDrawer = ({
               </label>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Farms Section - New */}
+      <div className="p-4 border-b">
+        <div className="flex items-center mb-3">
+          <LandPlot className="h-5 w-5 text-kitovu-purple mr-2" />
+          <h3 className="text-md font-medium">Farms</h3>
+        </div>
+        
+        <div className="space-y-3">
+          {/* All Farms */}
+          <div className="flex items-start">
+            <input
+              type="radio"
+              id="farm-layer-all"
+              name="farmLayer"
+              checked={activeFarmLayer === 'all'}
+              onChange={() => handleFarmLayerChange('all')}
+              className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+            />
+            <label htmlFor="farm-layer-all" className="ml-2 block text-sm">
+              <span className="font-medium">All Farms</span>
+            </label>
+          </div>
+          
+          {/* Farms by Type */}
+          <div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="farm-layer-type"
+                name="farmLayer"
+                checked={activeFarmLayer === 'type'}
+                onChange={() => handleFarmLayerChange('type')}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor="farm-layer-type" className="ml-2 block text-sm">
+                <span className="font-medium">Farms by Type</span>
+              </label>
+            </div>
+            
+            {/* Farm Type Dropdown - Only show when Farms by Type is selected */}
+            {activeFarmLayer === 'type' && (
+              <div className="ml-6 mt-2">
+                <select 
+                  value={farmTypeFilter || ''}
+                  onChange={(e) => onFarmTypeFilterChange(e.target.value)}
+                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                >
+                  <option value="">Select Farm Type</option>
+                  {FARM_TYPES.map(type => (
+                    <option key={type.id} value={type.id}>
+                      {type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          
+          {/* Farms by Crop */}
+          <div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="farm-layer-crop"
+                name="farmLayer"
+                checked={activeFarmLayer === 'crop'}
+                onChange={() => handleFarmLayerChange('crop')}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor="farm-layer-crop" className="ml-2 block text-sm">
+                <span className="font-medium">Farms by Crop</span>
+              </label>
+            </div>
+            
+            {/* Crop Type Dropdown - Only show when Farms by Crop is selected */}
+            {activeFarmLayer === 'crop' && (
+              <div className="ml-6 mt-2">
+                <select 
+                  value={cropTypeFilter || ''}
+                  onChange={(e) => onCropTypeFilterChange(e.target.value)}
+                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                >
+                  <option value="">Select Crop Type</option>
+                  {cropOptions.map(crop => (
+                    <option key={crop} value={crop}>
+                      {crop.charAt(0).toUpperCase() + crop.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          
+          {/* Farms by Livestock */}
+          <div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="farm-layer-livestock"
+                name="farmLayer"
+                checked={activeFarmLayer === 'livestock'}
+                onChange={() => handleFarmLayerChange('livestock')}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor="farm-layer-livestock" className="ml-2 block text-sm">
+                <span className="font-medium">Farms by Livestock</span>
+              </label>
+            </div>
+            
+            {/* Livestock Type Dropdown - Only show when Farms by Livestock is selected */}
+            {activeFarmLayer === 'livestock' && (
+              <div className="ml-6 mt-2">
+                <select 
+                  value={livestockTypeFilter || ''}
+                  onChange={(e) => onLivestockTypeFilterChange(e.target.value)}
+                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                >
+                  <option value="">Select Livestock Type</option>
+                  {livestockOptions.map(livestock => (
+                    <option key={livestock} value={livestock}>
+                      {livestock.charAt(0).toUpperCase() + livestock.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

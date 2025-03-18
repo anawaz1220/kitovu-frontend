@@ -49,6 +49,9 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\d
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerDensityLayer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerDensityLegend.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmerSearch.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmPopup.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmsLayer.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmsSummary.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\index.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\LeftDrawer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapContainer.jsx
@@ -106,9 +109,10 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\pages\Farmer
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\pages\Login.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\axios.config.js
-D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farm.service.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farm.service_old.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farmer.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farmerQuery.service.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\farms.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\services\api\location.service.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmerStore.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\stores\useFarmStore.js
