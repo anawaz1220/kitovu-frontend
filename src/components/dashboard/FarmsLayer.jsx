@@ -1,50 +1,17 @@
 // src/components/dashboard/FarmsLayer.jsx
-import React, { useState, useEffect, useRef } from 'react';
-import { GeoJSON, useMap } from 'react-leaflet';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { GeoJSON, useMap, CircleMarker } from 'react-leaflet';
 import L from 'leaflet';
 import farmService from '../../services/api/farms.service';
 import FarmPopup from './FarmPopup';
+import FarmVisualizationInfo from './FarmVisualizationInfo';
+import { calculateCentroid, getFarmStyle, shouldShowPolygons, getFarmMarkerSize } from './utils/geometryUtils';
 
-/**
- * Function to style farm polygons based on farm type
- * @param {Object} farm - Farm object
- * @returns {Object} - Leaflet style object
- */
-const getFarmStyle = (farm) => {
-  // Colors for different farm types
-  const farmTypeColors = {
-    crop_farming: {
-      color: '#4ade80', // Green border for crops
-      fillColor: '#4ade80',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.5
-    },
-    livestock_farming: {
-      color: '#f97316', // Orange border for livestock
-      fillColor: '#f97316',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.5
-    },
-    mixed_farming: {
-      color: '#8b5cf6', // Purple border for mixed
-      fillColor: '#8b5cf6',
-      weight: 2,
-      opacity: 1,
-      fillOpacity: 0.5
-    }
-  };
-  
-  // Get style based on farm type or use default
-  return farmTypeColors[farm.farm_type] || {
-    color: '#3b82f6', // Blue default
-    fillColor: '#3b82f6',
-    weight: 2,
-    opacity: 1,
-    fillOpacity: 0.5
-  };
-};
+// Export to make available for direct imports in other components
+export { ZOOM_THRESHOLD };
+
+// Zoom threshold for switching between point and polygon rendering
+const ZOOM_THRESHOLD = 10; // Adjust this value based on testing
 
 /**
  * Component that renders farms as a layer on the map
@@ -53,18 +20,60 @@ const FarmsLayer = ({
   visible = false,
   filterParams = {},
   onFarmsLoaded = () => {},
-  onSelectFarm = () => {}
+  onSelectFarm = () => {},
+  preventAutoZoom = false // New flag to prevent auto-zooming
 }) => {
   const [allFarms, setAllFarms] = useState([]);
   const [filteredFarms, setFilteredFarms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const map = useMap();
+  const [currentZoom, setCurrentZoom] = useState(map.getZoom());
+  const [showInfoPanel, setShowInfoPanel] = useState(true);
   
   // Refs to track state without causing re-renders
   const dataFetchedRef = useRef(false);
   const boundsSetRef = useRef(false);
   const prevFilterParamsRef = useRef(null);
+  
+  // Update zoom level when map is zoomed
+  useEffect(() => {
+    let userInitiatedZoom = false;
+    
+    const handleZoomStart = () => {
+      userInitiatedZoom = true;
+      console.log('User zoom detected');
+    };
+    
+    const handleZoomEnd = () => {
+      setCurrentZoom(map.getZoom());
+      
+      // If this was a user-initiated zoom, set a flag to prevent future auto-zooms
+      if (userInitiatedZoom) {
+        boundsSetRef.current = true; // Prevent auto-fitting bounds after user zoom
+        userInitiatedZoom = false;
+      }
+    };
+    
+    map.on('zoomstart', handleZoomStart);
+    map.on('zoomend', handleZoomEnd);
+    
+    return () => {
+      map.off('zoomstart', handleZoomStart);
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map]);
+
+  // Preprocess farm data to add centroids
+  const farmsWithCentroids = useMemo(() => {
+    return filteredFarms.map(farm => {
+      if (!farm.centroid && farm.geom) {
+        const centroid = calculateCentroid(farm.geom);
+        return { ...farm, centroid };
+      }
+      return farm;
+    });
+  }, [filteredFarms]);
   
   // Fetch all farms data once when component becomes visible
   useEffect(() => {
@@ -144,10 +153,31 @@ const FarmsLayer = ({
     }
   }, [visible, allFarms, filterParams, onFarmsLoaded]);
   
-  // Fit map to bounds when filtered farms change
+  // Fit map to bounds when filtered farms change - but only on initial load
   useEffect(() => {
-    // Skip if not visible, no filtered farms, or bounds already set
-    if (!visible || filteredFarms.length === 0 || boundsSetRef.current) return;
+    // Skip if:
+    // - Layer is not visible
+    // - No filtered farms
+    // - Bounds already set
+    // - Auto-zoom is explicitly prevented
+    if (!visible || filteredFarms.length === 0 || boundsSetRef.current || preventAutoZoom) {
+      // Mark as fitted if preventing auto-zoom
+      if (preventAutoZoom) {
+        boundsSetRef.current = true;
+      }
+      return;
+    }
+    
+    // Check if this is an initial load or a filter change
+    const isFilterChange = prevFilterParamsRef.current && Object.keys(prevFilterParamsRef.current).length > 0;
+    
+    // Only fit to bounds on initial load, not on manual zooming
+    if (isFilterChange) {
+      boundsSetRef.current = true;
+      return;
+    }
+    
+    console.log("AUTO-FITTING TO BOUNDS NOW");
     
     // Create a feature collection from farm geometries
     const features = filteredFarms
@@ -169,21 +199,22 @@ const FarmsLayer = ({
         const bounds = tempLayer.getBounds();
         
         if (bounds.isValid()) {
-          // Fit bounds with padding
-          map.fitBounds(bounds, {
-            padding: [50, 50],
-            animate: true
-          });
+          // Add a small delay to ensure map is ready
+          setTimeout(() => {
+            // Fit bounds with padding
+            map.fitBounds(bounds, {
+              padding: [50, 50],
+              animate: true
+            });
+          }, 100);
+          
           boundsSetRef.current = true;
         }
       } catch (e) {
         console.error('Error fitting to farm bounds:', e);
       }
     }
-  }, [visible, filteredFarms, map]);
-  
-  // Don't render anything if layer is not visible
-  if (!visible) return null;
+  }, [visible, filteredFarms, map, preventAutoZoom]);
   
   // Handle farm click
   const handleFarmClick = (farm) => {
@@ -192,18 +223,52 @@ const FarmsLayer = ({
     }
   };
   
+  // Don't render anything if layer is not visible
+  if (!visible) return null;
+  
+  // Determine rendering mode based on zoom level
+  const showPolygons = shouldShowPolygons(currentZoom, ZOOM_THRESHOLD);
+  const markerRadius = getFarmMarkerSize(currentZoom);
+  
+  // Render farms layer
   return (
     <>
-      {filteredFarms.length > 0 ? (
-        filteredFarms.map(farm => {
+      {farmsWithCentroids.length > 0 ? (
+        farmsWithCentroids.map(farm => {
           // Skip farms without geometry
           if (!farm.geom) return null;
           
+          // Get farm style
+          const style = getFarmStyle(farm);
+          
+          // Render as point for low zoom levels
+          if (!showPolygons && farm.centroid) {
+            return (
+              <CircleMarker
+                key={farm.id}
+                center={farm.centroid}
+                radius={markerRadius}
+                pathOptions={{
+                  fillColor: style.fillColor,
+                  color: style.color,
+                  fillOpacity: 0.8,
+                  weight: 1.5
+                }}
+                eventHandlers={{
+                  click: () => handleFarmClick(farm)
+                }}
+              >
+                <FarmPopup farm={farm} includeFarmerDetails={false} />
+              </CircleMarker>
+            );
+          }
+          
+          // Render as polygon for high zoom levels
           return (
             <GeoJSON
               key={farm.id}
               data={farm.geom}
-              style={() => getFarmStyle(farm)}
+              style={() => style}
               eventHandlers={{
                 click: () => handleFarmClick(farm)
               }}
@@ -220,6 +285,16 @@ const FarmsLayer = ({
         </div>
       )}
       
+      {/* Farm visualization info panel */}
+      {showInfoPanel && filteredFarms.length > 0 && (
+        <FarmVisualizationInfo 
+          showPolygons={showPolygons}
+          currentZoom={currentZoom}
+          threshold={ZOOM_THRESHOLD}
+        />
+      )}
+      
+      {/* Loading indicator */}
       {isLoading && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-md shadow-md z-[1000]">
           <div className="flex items-center space-x-2">
@@ -229,6 +304,7 @@ const FarmsLayer = ({
         </div>
       )}
       
+      {/* Error message */}
       {error && (
         <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-red-50 px-4 py-2 rounded-md shadow-md z-[1000]">
           <div className="flex items-center space-x-2 text-red-600">
