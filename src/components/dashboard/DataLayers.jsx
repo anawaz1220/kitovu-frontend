@@ -1,5 +1,5 @@
 // src/components/dashboard/DataLayers.jsx
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GeoJSON, useMap } from 'react-leaflet';
 import { 
   countryStyle, 
@@ -36,22 +36,71 @@ const DataLayers = ({ activeLayers }) => {
   const stateLayerRef = useRef(null);
   const lgaLayerRef = useRef(null);
   
+  // Track whether bounds have been fitted for each layer
+  const [boundsFitted, setBoundsFitted] = useState({
+    country: false,
+    state: false,
+    lga: false
+  });
+  
+  // Track if user has interacted with map
+  const [userInteracted, setUserInteracted] = useState(false);
+  
   const map = useMap();
+  
+  // Detect user interaction with the map
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      setUserInteracted(true);
+    };
+    
+    map.on('zoomstart', handleUserInteraction);
+    map.on('dragstart', handleUserInteraction);
+    map.on('click', handleUserInteraction);
+    
+    return () => {
+      map.off('zoomstart', handleUserInteraction);
+      map.off('dragstart', handleUserInteraction);
+      map.off('click', handleUserInteraction);
+    };
+  }, [map]);
 
   // Handle layer visibility and bounds fitting
   useEffect(() => {
-    if (activeLayers.countryBoundary && countryData && countryLayerRef.current) {
+    // Only fit bounds if:
+    // 1. The layer is active
+    // 2. We have data for that layer
+    // 3. The bounds haven't been fitted yet
+    // 4. The user hasn't interacted with the map
+    
+    if (activeLayers.countryBoundary && countryData && countryLayerRef.current && !boundsFitted.country && !userInteracted) {
       safelyFitBounds(map, countryLayerRef);
+      setBoundsFitted(prev => ({ ...prev, country: true }));
     }
     
-    if (activeLayers.stateBoundary && stateData && stateLayerRef.current) {
+    if (activeLayers.stateBoundary && stateData && stateLayerRef.current && !boundsFitted.state && !userInteracted) {
       safelyFitBounds(map, stateLayerRef);
+      setBoundsFitted(prev => ({ ...prev, state: true }));
     }
     
-    if (activeLayers.lgaBoundary && lgaData && lgaLayerRef.current) {
+    if (activeLayers.lgaBoundary && lgaData && lgaLayerRef.current && !boundsFitted.lga && !userInteracted) {
       safelyFitBounds(map, lgaLayerRef);
+      setBoundsFitted(prev => ({ ...prev, lga: true }));
     }
-  }, [activeLayers, countryData, stateData, lgaData, map]);
+  }, [activeLayers, countryData, stateData, lgaData, map, boundsFitted, userInteracted]);
+  
+  // Reset fitted status when layers are turned off
+  useEffect(() => {
+    if (!activeLayers.countryBoundary) {
+      setBoundsFitted(prev => ({ ...prev, country: false }));
+    }
+    if (!activeLayers.stateBoundary) {
+      setBoundsFitted(prev => ({ ...prev, state: false }));
+    }
+    if (!activeLayers.lgaBoundary) {
+      setBoundsFitted(prev => ({ ...prev, lga: false }));
+    }
+  }, [activeLayers]);
 
   // Show loading or error state if needed
   if (error) {
@@ -81,9 +130,6 @@ const DataLayers = ({ activeLayers }) => {
           onEachFeature={onEachStateFeature}
           ref={(el) => {
             stateLayerRef.current = el;
-            if (el && activeLayers.stateBoundary) {
-              safelyFitBounds(map, { current: el });
-            }
           }}
         />
       )}
@@ -97,9 +143,6 @@ const DataLayers = ({ activeLayers }) => {
           onEachFeature={onEachLGAFeature}
           ref={(el) => {
             lgaLayerRef.current = el;
-            if (el && activeLayers.lgaBoundary) {
-              safelyFitBounds(map, { current: el });
-            }
           }}
         />
       )}
