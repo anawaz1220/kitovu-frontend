@@ -44,23 +44,23 @@ const Layout = ({ children, showDrawerToggle = false, onDrawerToggle, hideFooter
             
             {/* Navigation */}
             <div className="hidden md:flex items-center space-x-4">
-              <Button 
+              {/* <Button 
                 variant={location.pathname === '/' ? 'default' : 'ghost'}
                 onClick={() => navigate('/')}
                 className={location.pathname === '/' ? 'bg-kitovu-purple text-white' : 'text-gray-700'}
               >
                 <MapPin className="h-4 w-4 mr-2" />
                 Dashboard
-              </Button>
+              </Button> */}
               
-              <Button 
+              {/* <Button 
                 variant={location.pathname === '/farmer-registration' ? 'default' : 'ghost'}
                 onClick={() => navigate('/farmer-registration')}
                 className={location.pathname === '/farmer-registration' ? 'bg-kitovu-purple text-white' : 'text-gray-700'}
               >
                 <Users className="h-4 w-4 mr-2" />
                 Summary Stats
-              </Button>
+              </Button> */}
             </div>
             
             {/* User Menu */}

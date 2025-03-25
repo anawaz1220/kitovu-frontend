@@ -1,8 +1,11 @@
 // src/components/dashboard/RightDrawer.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import { X, User, Phone, MapPin, Calendar, CreditCard, User2, Tractor, Loader2 } from 'lucide-react';
+import { X, User, Phone, MapPin, Calendar, CreditCard, User2, Tractor, Loader2, Users } from 'lucide-react';
 import defaultUserImage from '../../assets/images/default-user.svg';
 import { getFarmsByFarmerId } from '../../services/api/farmerQuery.service';
+
+// Base URL for images - use your development server URL
+const IMAGE_BASE_URL = 'http://localhost:3000';
 
 // Simple date formatter function (to avoid date-fns dependency)
 const formatDate = (dateString) => {
@@ -20,11 +23,53 @@ const formatDate = (dateString) => {
   }
 };
 
+// Format cooperative activities from snake_case to readable text
+const formatCooperativeActivities = (activities) => {
+  if (!activities) return 'None';
+  
+  // Handle both string and array formats
+  if (typeof activities === 'string') {
+    // If it's a single string value
+    return activities
+      .split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  } else if (Array.isArray(activities)) {
+    // If it's an array of activities
+    return activities.map(activity => 
+      activity
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    ).join(', ');
+  }
+  
+  return 'None';
+};
+
+// Helper function to get full image URL
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  
+  // Check if the path is already a full URL
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  
+  // Ensure the path starts with a slash
+  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+  
+  // Return the full URL
+  return `${IMAGE_BASE_URL}${cleanPath}`;
+};
+
 const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoaded }) => {
   const [farms, setFarms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const fetchedFarmerIdRef = useRef(null);
+  const [farmerImageError, setFarmerImageError] = useState(false);
+  const [idDocumentImageError, setIdDocumentImageError] = useState(false);
   
   // Fetch farms when a farmer is selected
   useEffect(() => {
@@ -58,7 +103,11 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
     };
     
     fetchFarms();
-  }, [selectedFarmer?.farmer_id, isOpen]); // Only depend on farmer_id, not the entire farmer object
+    
+    // Reset image error states when selected farmer changes
+    setFarmerImageError(false);
+    setIdDocumentImageError(false);
+  }, [selectedFarmer?.farmer_id, isOpen, onFarmsLoaded]); // Only depend on farmer_id, not the entire farmer object
 
   // Don't render anything if drawer is not open or no farmer is selected
   if (!isOpen || !selectedFarmer) {
@@ -87,6 +136,31 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
       onFarmSelect(farm);
     }
   };
+  
+  // Handle image loading error for farmer picture
+  const handleFarmerImageError = (e) => {
+    console.error('Error loading farmer image:', e.target.src);
+    setFarmerImageError(true);
+  };
+  
+  // Handle image loading error for ID document picture
+  const handleIdDocumentImageError = (e) => {
+    console.error('Error loading ID document image:', e.target.src);
+    setIdDocumentImageError(true);
+  };
+  
+  // IMPORTANT: We're swapping these variables based on your feedback
+  // that the images are reversed in the API response
+  
+  // For the profile picture, use the ID document picture field
+  const farmerImageSrc = !farmerImageError && selectedFarmer.id_document_picture 
+    ? getImageUrl(selectedFarmer.id_document_picture) 
+    : defaultUserImage;
+    
+  // For the ID document, use the farmer picture field
+  const idDocumentImageSrc = !idDocumentImageError && selectedFarmer.farmer_picture 
+    ? getImageUrl(selectedFarmer.farmer_picture) 
+    : defaultUserImage;
 
   return (
     <div 
@@ -111,9 +185,10 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
         <div className="flex flex-col items-center mb-6">
           <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-2 border-kitovu-purple">
             <img 
-              src={defaultUserImage} 
+              src={farmerImageSrc}
               alt={`${selectedFarmer.first_name} ${selectedFarmer.last_name}`}
               className="w-full h-full object-cover"
+              onError={handleFarmerImageError}
             />
           </div>
           <h3 className="text-xl font-bold text-center text-gray-800">
@@ -183,9 +258,10 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <p className="text-sm font-medium text-gray-500 mb-2">ID Document</p>
             <div className="border rounded-md overflow-hidden">
               <img 
-                src={defaultUserImage} 
+                src={idDocumentImageSrc}
                 alt="ID Document" 
                 className="w-full h-auto"
+                onError={handleIdDocumentImageError}
               />
             </div>
           </div>
@@ -239,6 +315,51 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+          
+          {/* Farmer Affiliations Section */}
+          <div className="flex items-start mt-4 pt-4 border-t">
+            <Users className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" />
+            <div className="w-full">
+              <p className="text-sm font-medium text-gray-500 mb-2">Farmer Affiliations</p>
+              
+              <div className="space-y-2">
+                {/* Cooperative Membership */}
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Cooperative Member</p>
+                  <p className="text-gray-800">
+                    {selectedFarmer.member_of_cooperative === true 
+                      ? 'Yes' 
+                      : selectedFarmer.member_of_cooperative === false 
+                        ? 'No' 
+                        : 'Not specified'}
+                  </p>
+                </div>
+                
+                {/* Show cooperative details only if member */}
+                {selectedFarmer.member_of_cooperative === true && (
+                  <>
+                    {/* Cooperative Name */}
+                    {selectedFarmer.cooperative_name && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Cooperative Name</p>
+                        <p className="text-gray-800">{selectedFarmer.cooperative_name}</p>
+                      </div>
+                    )}
+                    
+                    {/* Cooperative Activities */}
+                    {selectedFarmer.cooperative_activities && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Activities</p>
+                        <p className="text-gray-800">
+                          {formatCooperativeActivities(selectedFarmer.cooperative_activities)}
+                        </p>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
