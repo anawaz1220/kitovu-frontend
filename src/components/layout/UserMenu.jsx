@@ -1,10 +1,12 @@
 // src/components/layout/UserMenu.jsx
-import React, { Fragment } from 'react';
+import React, { Fragment, useState } from 'react';
 import { Menu, Transition } from '@headlessui/react';
-import { UserCircle } from 'lucide-react';
+import { UserCircle, Lock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import PasswordResetModal from './PasswordResetModal';
 
 const UserMenu = () => {
+  const [isPasswordResetOpen, setIsPasswordResetOpen] = useState(false);
   const { user, logout } = useAuth();
 
   // Return null if no user is logged in
@@ -39,6 +41,20 @@ const UserMenu = () => {
           <Menu.Item>
             {({ active }) => (
               <button
+                onClick={() => setIsPasswordResetOpen(true)}
+                className={`${
+                  active ? 'bg-gray-100' : ''
+                } flex w-full px-4 py-2 text-left text-sm text-gray-700 items-center`}
+              >
+                <Lock className="h-4 w-4 mr-2 text-gray-500" />
+                Reset Password
+              </button>
+            )}
+          </Menu.Item>
+          
+          <Menu.Item>
+            {({ active }) => (
+              <button
                 onClick={logout}
                 className={`${
                   active ? 'bg-gray-100' : ''
@@ -50,6 +66,12 @@ const UserMenu = () => {
           </Menu.Item>
         </Menu.Items>
       </Transition>
+      
+      {/* Password Reset Modal */}
+      <PasswordResetModal 
+        isOpen={isPasswordResetOpen} 
+        onClose={() => setIsPasswordResetOpen(false)} 
+      />
     </Menu>
   );
 };
