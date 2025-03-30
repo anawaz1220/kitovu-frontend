@@ -52,16 +52,19 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\d
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmPopup.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmsLayer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmsSummary.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\FarmVisualizationInfo.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\index.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\LeftDrawer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapContainer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapUpdater.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MapZoomProtector.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MeasurementControl.css
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\MeasurementControl.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\RightDrawer.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\commodityUtils.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\densityUtils.js
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\geometryUtils.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\index.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\mapConfig.js
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\dashboard\utils\mapInteractions.js
@@ -94,6 +97,7 @@ D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\f
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\farmer\KYCInfo\index.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\farmer\KYCInfo\PhotoCapture.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\layout\Layout.jsx
+D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\layout\PasswordResetModal.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\layout\UserMenu.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\alert.jsx
 D:\Personel\Freelance\Farooq\Kitovu-TrakOS\Apps\kitovu-frontend\src\components\ui\button.jsx
