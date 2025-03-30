@@ -1,11 +1,12 @@
 // src/components/dashboard/FarmerDensityLayer.jsx
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { GeoJSON, useMap } from 'react-leaflet';
-import { farmerDensityStyle, onEachDensityFeature } from './utils/densityUtils';
+import { createDensityFeatureInteraction } from './utils/dynamicFeatureInteractions';
+import { createFarmerDensityStyle } from './utils/dynamicDensityUtils';
 import FarmerDensityLegend from './FarmerDensityLegend';
 
 /**
- * Component that renders the farmer density visualization
+ * Component that renders the farmer density visualization with dynamic styling
  * @param {Object} props - Component props
  * @param {boolean} props.visible - Whether the layer should be visible
  * @param {Object} props.stateData - GeoJSON data for states with farmer counts
@@ -29,18 +30,30 @@ const FarmerDensityLayer = ({
   // If no data is available, don't render anything
   if (!data || !data.features || data.features.length === 0) return null;
   
+  // Create memoized style and interaction functions based on the current data
+  const styleFunction = useMemo(() => {
+    return createFarmerDensityStyle(data);
+  }, [data]);
+  
+  const interactionFunction = useMemo(() => {
+    return createDensityFeatureInteraction(data);
+  }, [data]);
+  
   return (
     <>
       {/* Render the density layer */}
       <GeoJSON 
         key={`farmer-density-${detailLevel}`}
         data={data}
-        style={farmerDensityStyle}
-        onEachFeature={onEachDensityFeature}
+        style={styleFunction}
+        onEachFeature={interactionFunction}
       />
       
       {/* Render the legend */}
-      <FarmerDensityLegend visible={true} />
+      <FarmerDensityLegend 
+        visible={true} 
+        data={data}
+      />
       
       {/* Detail level switcher - positioned at the bottom left */}
       <div 
