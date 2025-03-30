@@ -101,7 +101,7 @@ const Dashboard = () => {
     setFarmsSummaryOpen(false);
     
     setActiveLayers(prevLayers => {
-      // Create a new state object with all distribution layers turned off
+      // Create a new state object with a copy of the previous state
       const newState = { ...prevLayers };
       
       // Turn off all distribution layers
@@ -109,8 +109,12 @@ const Dashboard = () => {
         newState[id] = false;
       });
       
-      // Turn on only the selected one
-      newState[layerId] = true;
+      // If layerId is not null, turn on the selected layer
+      if (layerId !== null) {
+        newState[layerId] = true;
+      }
+      // If layerId is null, then we just want all distribution layers off,
+      // which is already handled above
       
       return newState;
     });
