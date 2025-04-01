@@ -30,21 +30,34 @@ const LeftDrawer = ({
   onCropTypeFilterChange = () => {},
   livestockTypeFilter,
   onLivestockTypeFilterChange = () => {},
+  communityFilter,
+  onCommunityFilterChange = () => {},
   cropOptions = [],
-  livestockOptions = []
+  livestockOptions = [],
+  communityOptions = []
 }) => {
   // Filter layers by category
   const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
   const distributionLayers = LAYER_OPTIONS.filter(layer => layer.category === 'distribution');
 
-  // Handle selection of a distribution layer (radio button)
+  // Handle selection of a distribution layer (checkbox style)
   const handleDistributionLayerChange = (layerId) => {
-    // If the layer is already active, deselect it
-    if (activeLayers[layerId]) {
-      // Just toggle this layer off without selecting any other
+    // Check if any layer is currently active
+    const isAnyLayerActive = ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA']
+      .some(id => activeLayers[id] && id !== layerId);
+      
+    // If this layer is already active and no other distribution layers are active,
+    // we can simply toggle it off
+    if (activeLayers[layerId] && !isAnyLayerActive) {
       onLayerToggle(layerId);
-    } else {
-      // Call parent handler that will toggle off all other distribution layers
+    } 
+    // If this layer is already active and other layers are active,
+    // we need to deselect all layers
+    else if (activeLayers[layerId] && isAnyLayerActive) {
+      onDistributionLayerSelect(null); // Pass null to indicate deselect all
+    }
+    // If this layer is not active, activate it and deactivate others
+    else {
       onDistributionLayerSelect(layerId);
     }
   };
@@ -110,12 +123,11 @@ const LeftDrawer = ({
           {distributionLayers.map(layer => (
             <div key={layer.id} className="flex items-start">
               <input
-                type="radio"
+                type="checkbox"
                 id={`layer-${layer.id}`}
-                name="distributionLayer" // All share same name to make them a radio group
                 checked={activeLayers[layer.id] || false}
                 onChange={() => handleDistributionLayerChange(layer.id)}
-                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+                className="mt-1 h-4 w-4 rounded border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
               />
               <label htmlFor={`layer-${layer.id}`} className="ml-2 block text-sm">
                 <span className="font-medium">{layer.name}</span>
@@ -125,7 +137,7 @@ const LeftDrawer = ({
         </div>
       </div>
 
-      {/* Farms Section - New */}
+      {/* Farms Section */}
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <LandPlot className="h-5 w-5 text-kitovu-purple mr-2" />
@@ -246,6 +258,41 @@ const LeftDrawer = ({
                   {livestockOptions.map(livestock => (
                     <option key={livestock} value={livestock}>
                       {livestock.charAt(0).toUpperCase() + livestock.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          
+          {/* Farms by Community */}
+          <div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="farm-layer-community"
+                name="farmLayer"
+                checked={activeFarmLayer === 'community'}
+                onChange={() => handleFarmLayerChange('community')}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor="farm-layer-community" className="ml-2 block text-sm">
+                <span className="font-medium">Farms by Community</span>
+              </label>
+            </div>
+            
+            {/* Community Dropdown - Only show when Farms by Community is selected */}
+            {activeFarmLayer === 'community' && (
+              <div className="ml-6 mt-2">
+                <select 
+                  value={communityFilter || ''}
+                  onChange={(e) => onCommunityFilterChange(e.target.value)}
+                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                >
+                  <option value="">Select Community</option>
+                  {communityOptions.map(community => (
+                    <option key={community} value={community}>
+                      {community}
                     </option>
                   ))}
                 </select>

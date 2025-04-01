@@ -9,6 +9,8 @@ import FarmsSummary from '../components/dashboard/FarmsSummary';
 import FarmsLayer from '../components/dashboard/FarmsLayer';
 import { getInitialActiveLayers } from '../config/mapSettings';
 import farmService from '../services/api/farms.service';
+import { getFarmers } from '../services/api/farmerQuery.service';
+import communityService from '../services/api/community.service';
 
 /**
 * Dashboard page component with map and control panel
@@ -25,18 +27,18 @@ const Dashboard = () => {
   const [farmerFarms, setFarmerFarms] = useState([]);
   
   // Farm layers state
-  
   const [activeFarmLayer, setActiveFarmLayer] = useState(null);
   const [farmTypeFilter, setFarmTypeFilter] = useState('');
   const [cropTypeFilter, setCropTypeFilter] = useState('');
   const [livestockTypeFilter, setLivestockTypeFilter] = useState('');
+  const [communityFilter, setCommunityFilter] = useState('');
   const [cropOptions, setCropOptions] = useState([]);
   const [livestockOptions, setLivestockOptions] = useState([]);
+  const [communityOptions, setCommunityOptions] = useState([]);
   const [farmsSummary, setFarmsSummary] = useState(null);
   const [isFarmDataLoading, setIsFarmDataLoading] = useState(false);
   const [shouldFetchFarms, setShouldFetchFarms] = useState(false);
-  const [selectedFilterType, setSelectedFilterType] = useState(null);
-  
+
   // Layer visibility state
   const [activeLayers, setActiveLayers] = useState({
     ...getInitialActiveLayers(),
@@ -45,6 +47,9 @@ const Dashboard = () => {
     commodityByState: false,
     commodityByLGA: false
   });
+
+  // Track if options have been loaded
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
 
   // Use useCallback for event handlers to prevent unnecessary rerenders
   const toggleLeftDrawer = useCallback(() => {
@@ -101,7 +106,7 @@ const Dashboard = () => {
     setFarmsSummaryOpen(false);
     
     setActiveLayers(prevLayers => {
-      // Create a new state object with all distribution layers turned off
+      // Create a new state object with a copy of the previous state
       const newState = { ...prevLayers };
       
       // Turn off all distribution layers
@@ -109,8 +114,10 @@ const Dashboard = () => {
         newState[id] = false;
       });
       
-      // Turn on only the selected one
-      newState[layerId] = true;
+      // If layerId is not null, turn on the selected layer
+      if (layerId !== null) {
+        newState[layerId] = true;
+      }
       
       return newState;
     });
@@ -118,6 +125,8 @@ const Dashboard = () => {
   
   // Handle farm layer selection
   const handleFarmLayerSelect = useCallback((layerId) => {
+    console.log('Farm layer selected:', layerId);
+    
     // Toggle off if already selected
     if (activeFarmLayer === layerId) {
       setActiveFarmLayer(null);
@@ -151,15 +160,23 @@ const Dashboard = () => {
       setFarmTypeFilter('');
       setCropTypeFilter('');
       setLivestockTypeFilter('');
+      setCommunityFilter('');
     } else if (layerId === 'type') {
       setCropTypeFilter('');
       setLivestockTypeFilter('');
+      setCommunityFilter('');
     } else if (layerId === 'crop') {
       setFarmTypeFilter('');
       setLivestockTypeFilter('');
+      setCommunityFilter('');
     } else if (layerId === 'livestock') {
       setFarmTypeFilter('');
       setCropTypeFilter('');
+      setCommunityFilter('');
+    } else if (layerId === 'community') {
+      setFarmTypeFilter('');
+      setCropTypeFilter('');
+      setLivestockTypeFilter('');
     }
     
     // Set loading state
@@ -167,74 +184,113 @@ const Dashboard = () => {
     setShouldFetchFarms(true); // Always fetch when changing layer type
   }, [activeFarmLayer]);
   
-  // Load crop and livestock options when needed
+  // Load crop, livestock, and community options on component mount
   useEffect(() => {
+    // Skip if options are already loaded
+    if (optionsLoaded) return;
+    
     const loadOptions = async () => {
       try {
         setIsFarmDataLoading(true);
         
-        // Only load once if not already loaded
-        if (cropOptions.length === 0 || livestockOptions.length === 0) {
-          const options = await farmService.loadFilterOptions();
-          
-          setCropOptions(options.cropTypes);
-          setLivestockOptions(options.livestockTypes);
-        }
+        console.log('Loading filter options...');
+        
+        // Load farm type options
+        const options = await farmService.loadFilterOptions();
+        setCropOptions(options.cropTypes);
+        setLivestockOptions(options.livestockTypes);
+        
+        console.log('Loading communities...');
+        
+        // Load communities from the community service
+        const communities = await communityService.getCommunities();
+        setCommunityOptions(communities);
+        
+        console.log(`Options loaded - Crops: ${options.cropTypes.length}, Livestock: ${options.livestockTypes.length}, Communities: ${communities.length}`);
+        
+        // Mark options as loaded
+        setOptionsLoaded(true);
       } catch (error) {
-        console.error('Error loading farm options:', error);
+        console.error('Error loading options:', error);
       } finally {
         setIsFarmDataLoading(false);
       }
     };
     
     loadOptions();
-  }, []);
+  }, [optionsLoaded]);
   
   // Handle farm data loading
   const handleFarmDataLoaded = useCallback((farms) => {
+    console.log(`Farm data loaded: ${farms.length} farms`);
     // Calculate summary statistics
     const summary = farmService.calculateFarmsSummary(farms);
+    console.log('Farm summary calculated:', summary);
     setFarmsSummary(summary);
     setIsFarmDataLoading(false);
   }, []);
   
   // Update filter handlers to always trigger fetching
-const handleFarmTypeFilterChange = useCallback((value) => {
-  setFarmTypeFilter(value);
-  setIsFarmDataLoading(true);
-  setShouldFetchFarms(true);
-}, []);
+  const handleFarmTypeFilterChange = useCallback((value) => {
+    console.log('Farm type filter changed:', value);
+    setFarmTypeFilter(value);
+    setIsFarmDataLoading(true);
+    setShouldFetchFarms(true);
+  }, []);
 
-const handleCropTypeFilterChange = useCallback((value) => {
-  setCropTypeFilter(value);
-  setIsFarmDataLoading(true);
-  setShouldFetchFarms(true);
-}, []);
+  const handleCropTypeFilterChange = useCallback((value) => {
+    console.log('Crop type filter changed:', value);
+    setCropTypeFilter(value);
+    setIsFarmDataLoading(true);
+    setShouldFetchFarms(true);
+  }, []);
 
-const handleLivestockTypeFilterChange = useCallback((value) => {
-  setLivestockTypeFilter(value);
-  setIsFarmDataLoading(true);
-  setShouldFetchFarms(true);
-}, []);
+  const handleLivestockTypeFilterChange = useCallback((value) => {
+    console.log('Livestock type filter changed:', value);
+    setLivestockTypeFilter(value);
+    setIsFarmDataLoading(true);
+    setShouldFetchFarms(true);
+  }, []);
 
-// Generate filter params based on active farm layer
-const getFarmFilterParams = useCallback(() => {
-  if (!shouldFetchFarms) {
-    return {};
-  }
-  
-  switch (activeFarmLayer) {
-    case 'type':
-      return { farm_type: farmTypeFilter };
-    case 'crop':
-      return { crop_type: cropTypeFilter };
-    case 'livestock':
-      return { livestock_type: livestockTypeFilter };
-    case 'all':
-    default:
+  const handleCommunityFilterChange = useCallback((value) => {
+    console.log('Community filter changed:', value);
+    setCommunityFilter(value);
+    setIsFarmDataLoading(true);
+    setShouldFetchFarms(true);
+    
+    // Clear community service cache to force fresh data
+    communityService.clearCache();
+  }, []);
+
+  // Generate filter params based on active farm layer
+  const getFarmFilterParams = useCallback(() => {
+    if (!shouldFetchFarms) {
       return {};
-  }
-}, [activeFarmLayer, farmTypeFilter, cropTypeFilter, livestockTypeFilter, shouldFetchFarms]);
+    }
+    
+    let params = {};
+    
+    switch (activeFarmLayer) {
+      case 'type':
+        params = { farm_type: farmTypeFilter };
+        break;
+      case 'crop':
+        params = { crop_type: cropTypeFilter };
+        break;
+      case 'livestock':
+        params = { livestock_type: livestockTypeFilter };
+        break;
+      case 'community':
+        params = { community: communityFilter };
+        break;
+      case 'all':
+      default:
+        params = {};
+    }
+    
+    console.log('Generated filter params:', params);
+    return params;
+  }, [activeFarmLayer, farmTypeFilter, cropTypeFilter, livestockTypeFilter, communityFilter, shouldFetchFarms]);
   
   // Handle farm summary close
   const handleCloseFarmSummary = useCallback(() => {
@@ -268,8 +324,11 @@ const getFarmFilterParams = useCallback(() => {
           onCropTypeFilterChange={handleCropTypeFilterChange}
           livestockTypeFilter={livestockTypeFilter}
           onLivestockTypeFilterChange={handleLivestockTypeFilterChange}
+          communityFilter={communityFilter}
+          onCommunityFilterChange={handleCommunityFilterChange}
           cropOptions={cropOptions}
           livestockOptions={livestockOptions}
+          communityOptions={communityOptions}
         />
 
         {/* Right Drawer for farmer details */}
@@ -282,29 +341,32 @@ const getFarmFilterParams = useCallback(() => {
         />
         
         {/* Farms Summary Drawer */}
-          <FarmsSummary
-            isOpen={farmsSummaryOpen}
-            onClose={handleCloseFarmSummary}
-            summary={farmsSummary}
-            title={
-              activeFarmLayer === 'all' ? 'All Farms Summary' :
-              activeFarmLayer === 'type' && farmTypeFilter ? `${farmTypeFilter.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} Farms` :
-              activeFarmLayer === 'type' ? 'Farms by Type' :
-              activeFarmLayer === 'crop' && cropTypeFilter ? `Farms Growing ${cropTypeFilter.charAt(0).toUpperCase() + cropTypeFilter.slice(1)}` :
-              activeFarmLayer === 'crop' ? 'Farms by Crop' :
-              activeFarmLayer === 'livestock' && livestockTypeFilter ? `Farms with ${livestockTypeFilter.charAt(0).toUpperCase() + livestockTypeFilter.slice(1)}` :
-              activeFarmLayer === 'livestock' ? 'Farms by Livestock' :
-              'Farms Summary'
-            }
-            isLoading={isFarmDataLoading}
-            selectedFilter={
-              activeFarmLayer === 'all' ? 'all' :
-              activeFarmLayer === 'type' && farmTypeFilter ? 'selected' :
-              activeFarmLayer === 'crop' && cropTypeFilter ? 'selected' :
-              activeFarmLayer === 'livestock' && livestockTypeFilter ? 'selected' :
-              'none'
-            }
-          />
+        <FarmsSummary
+          isOpen={farmsSummaryOpen}
+          onClose={handleCloseFarmSummary}
+          summary={farmsSummary}
+          title={
+            activeFarmLayer === 'all' ? 'All Farms Summary' :
+            activeFarmLayer === 'type' && farmTypeFilter ? `${farmTypeFilter.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())} Farms` :
+            activeFarmLayer === 'type' ? 'Farms by Type' :
+            activeFarmLayer === 'crop' && cropTypeFilter ? `Farms Growing ${cropTypeFilter.charAt(0).toUpperCase() + cropTypeFilter.slice(1)}` :
+            activeFarmLayer === 'crop' ? 'Farms by Crop' :
+            activeFarmLayer === 'livestock' && livestockTypeFilter ? `Farms with ${livestockTypeFilter.charAt(0).toUpperCase() + livestockTypeFilter.slice(1)}` :
+            activeFarmLayer === 'livestock' ? 'Farms by Livestock' :
+            activeFarmLayer === 'community' && communityFilter ? `Farms in ${communityFilter}` :
+            activeFarmLayer === 'community' ? 'Farms by Community' :
+            'Farms Summary'
+          }
+          isLoading={isFarmDataLoading}
+          selectedFilter={
+            activeFarmLayer === 'all' ? 'all' :
+            activeFarmLayer === 'type' && farmTypeFilter ? 'selected' :
+            activeFarmLayer === 'crop' && cropTypeFilter ? 'selected' :
+            activeFarmLayer === 'livestock' && livestockTypeFilter ? 'selected' :
+            activeFarmLayer === 'community' && communityFilter ? 'selected' :
+            'none'
+          }
+        />
 
         {/* Map Container - Full Screen */}
         <MapContainer 
@@ -316,16 +378,16 @@ const getFarmFilterParams = useCallback(() => {
           onFarmSelect={handleFarmSelect}
         >
           {/* Render farm layers - only when shouldFetchFarms is true or for "all" layer */}
-            {activeFarmLayer && (
-              activeFarmLayer === 'all' || shouldFetchFarms
-            ) && (
-              <FarmsLayer
-                visible={true}
-                filterParams={getFarmFilterParams()}
-                onFarmsLoaded={handleFarmDataLoaded}
-                onSelectFarm={handleFarmSelect}
-              />
-            )}
+          {activeFarmLayer && (
+            activeFarmLayer === 'all' || shouldFetchFarms
+          ) && (
+            <FarmsLayer
+              visible={true}
+              filterParams={getFarmFilterParams()}
+              onFarmsLoaded={handleFarmDataLoaded}
+              onSelectFarm={handleFarmSelect}
+            />
+          )}
         </MapContainer>
       </div>
     </Layout>
