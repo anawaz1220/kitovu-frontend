@@ -1,93 +1,80 @@
 // src/components/dashboard/FarmsLayer.jsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { GeoJSON, useMap, CircleMarker } from 'react-leaflet';
+import React, { useState, useEffect, useRef } from 'react';
+import { GeoJSON, useMap, CircleMarker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import farmService from '../../services/api/farms.service';
+import communityService from '../../services/api/community.service';
 import FarmPopup from './FarmPopup';
-import FarmVisualizationInfo from './FarmVisualizationInfo';
-import { calculateCentroid, getFarmStyle, shouldShowPolygons, getFarmMarkerSize } from './utils/geometryUtils';
+import { getFarmStyle, getFarmMarkerSize, calculateCentroid } from './utils/geometryUtils';
 
-// Export to make available for direct imports in other components
-export { ZOOM_THRESHOLD };
-
-// Zoom threshold for switching between point and polygon rendering
-const ZOOM_THRESHOLD = 10; // Adjust this value based on testing
+// Threshold zoom level for switching between points and polygons
+export const ZOOM_THRESHOLD = 11;
 
 /**
- * Component that renders farms as a layer on the map
+ * Component that renders farm data on the map
+ * @param {Object} props - Component props
+ * @param {boolean} props.visible - Whether layer is visible
+ * @param {Object} props.filterParams - Parameters for filtering farms
+ * @param {Function} props.onFarmsLoaded - Callback with loaded farms data
+ * @param {Function} props.onSelectFarm - Callback when farm is selected
  */
 const FarmsLayer = ({ 
-  visible = false,
+  visible = true,
   filterParams = {},
   onFarmsLoaded = () => {},
-  onSelectFarm = () => {},
-  preventAutoZoom = false // New flag to prevent auto-zooming
+  onSelectFarm = () => {}
 }) => {
+  const map = useMap();
   const [allFarms, setAllFarms] = useState([]);
   const [filteredFarms, setFilteredFarms] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
-  const map = useMap();
   const [currentZoom, setCurrentZoom] = useState(map.getZoom());
-  const [showInfoPanel, setShowInfoPanel] = useState(true);
   
-  // Refs to track state without causing re-renders
-  const dataFetchedRef = useRef(false);
+  // Keep track of the previous filter params to avoid unnecessary re-filtering
+  const prevFilterParamsRef = useRef({});
   const boundsSetRef = useRef(false);
-  const prevFilterParamsRef = useRef(null);
+  const processingRef = useRef(false);
+  const initialLoadRef = useRef(false);
   
-  // Update zoom level when map is zoomed
+  // Monitor zoom level changes
   useEffect(() => {
-    let userInitiatedZoom = false;
-    
-    const handleZoomStart = () => {
-      userInitiatedZoom = true;
-      console.log('User zoom detected');
-    };
-    
-    const handleZoomEnd = () => {
+    const handleZoomChange = () => {
       setCurrentZoom(map.getZoom());
-      
-      // If this was a user-initiated zoom, set a flag to prevent future auto-zooms
-      if (userInitiatedZoom) {
-        boundsSetRef.current = true; // Prevent auto-fitting bounds after user zoom
-        userInitiatedZoom = false;
-      }
     };
     
-    map.on('zoomstart', handleZoomStart);
-    map.on('zoomend', handleZoomEnd);
+    map.on('zoomend', handleZoomChange);
     
     return () => {
-      map.off('zoomstart', handleZoomStart);
-      map.off('zoomend', handleZoomEnd);
+      map.off('zoomend', handleZoomChange);
     };
   }, [map]);
-
-  // Preprocess farm data to add centroids
-  const farmsWithCentroids = useMemo(() => {
-    return filteredFarms.map(farm => {
-      if (!farm.centroid && farm.geom) {
-        const centroid = calculateCentroid(farm.geom);
-        return { ...farm, centroid };
-      }
-      return farm;
-    });
-  }, [filteredFarms]);
   
-  // Fetch all farms data once when component becomes visible
+  // Fetch all farms once on initial mount
   useEffect(() => {
-    // Skip if not visible or already fetched
-    if (!visible || dataFetchedRef.current) return;
+    // Skip if not visible or already loaded
+    if (!visible || initialLoadRef.current) return;
     
     const fetchFarms = async () => {
-      setIsLoading(true);
       try {
-        const data = await farmService.getFarms();
-        setAllFarms(data);
-        dataFetchedRef.current = true;
-      } catch (err) {
-        console.error('Error fetching farms:', err);
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('Fetching all farms...');
+        const farms = await farmService.getFarms();
+        console.log(`Fetched ${farms.length} farms`);
+        
+        setAllFarms(farms);
+        // For "all" layer, show all farms initially
+        if (Object.keys(filterParams).length === 0) {
+          setFilteredFarms(farms);
+          onFarmsLoaded(farms);
+        }
+        
+        // Mark as loaded
+        initialLoadRef.current = true;
+      } catch (error) {
+        console.error('Error fetching farms:', error);
         setError('Failed to load farms data');
       } finally {
         setIsLoading(false);
@@ -95,12 +82,12 @@ const FarmsLayer = ({
     };
     
     fetchFarms();
-  }, [visible]);
+  }, [visible, onFarmsLoaded, filterParams]);
   
   // Apply filters when allFarms or filterParams change
   useEffect(() => {
-    // Skip if not visible or no farms data
-    if (!visible || allFarms.length === 0) return;
+    // Skip if not visible, no farms data, or already processing
+    if (!visible || allFarms.length === 0 || processingRef.current) return;
     
     const currentFilterString = JSON.stringify(filterParams);
     const prevFilterString = JSON.stringify(prevFilterParamsRef.current);
@@ -111,207 +98,192 @@ const FarmsLayer = ({
     // Save current filters for comparison next time
     prevFilterParamsRef.current = {...filterParams};
     
-    // Filter farms based on filterParams
-    let filtered = [...allFarms];
+    const applyFilters = async () => {
+      try {
+        processingRef.current = true;
+        setIsLoading(true);
+        setError(null);
+        
+        console.log('Applying filters:', filterParams);
+        
+        // Start with all farms
+        let filtered = [...allFarms];
+        
+        // Apply the specific filter based on the filter type
+        if (filterParams.farm_type) {
+          // Filter by farm type
+          filtered = filtered.filter(farm => farm.farm_type === filterParams.farm_type);
+          console.log(`Filtered to ${filtered.length} farms by farm type:`, filterParams.farm_type);
+        } 
+        else if (filterParams.crop_type) {
+          // Filter by crop type
+          filtered = filtered.filter(farm => farm.crop_type === filterParams.crop_type);
+          console.log(`Filtered to ${filtered.length} farms by crop type:`, filterParams.crop_type);
+        } 
+        else if (filterParams.livestock_type) {
+          // Filter by livestock type
+          filtered = filtered.filter(farm => farm.livestock_type === filterParams.livestock_type);
+          console.log(`Filtered to ${filtered.length} farms by livestock type:`, filterParams.livestock_type);
+        }
+        else if (filterParams.community) {
+          // Filter by community - use the community service
+          console.log('Filtering by community:', filterParams.community);
+          try {
+            // Get farms for the selected community
+            filtered = await communityService.getFarmsByCommunitity(filterParams.community);
+            console.log(`Found ${filtered.length} farms for community:`, filterParams.community);
+          } catch (error) {
+            console.error('Error getting farms by community:', error);
+            setError(`Error filtering by community: ${error.message}`);
+            filtered = [];
+          }
+        }
+        
+        console.log(`Final filtered farms count: ${filtered.length}`);
+        
+        // Update state with filtered farms
+        setFilteredFarms(filtered);
+        
+        // Call callback with filtered farms
+        onFarmsLoaded(filtered);
+        
+        // Reset the bounds flag when filters change
+        if (currentFilterString !== prevFilterString) {
+          boundsSetRef.current = false;
+        }
+      } catch (error) {
+        console.error('Error applying filters:', error);
+        setError('Failed to filter farms');
+        setFilteredFarms([]);
+        onFarmsLoaded([]);
+      } finally {
+        setIsLoading(false);
+        processingRef.current = false;
+      }
+    };
     
-    if (filterParams.farm_type !== undefined) {
-      // Filter by farm type if specified
-      if (filterParams.farm_type) {
-        filtered = filtered.filter(farm => farm.farm_type === filterParams.farm_type);
-      }
-    } 
-    else if (filterParams.crop_type !== undefined) {
-      // Filter by crop type if specified
-      if (filterParams.crop_type) {
-        filtered = filtered.filter(farm => farm.crop_type === filterParams.crop_type);
-      }
-      // If crop_type is empty string, keep all farms with any crop_type
-      else {
-        filtered = filtered.filter(farm => farm.crop_type);
-      }
-    } 
-    else if (filterParams.livestock_type !== undefined) {
-      // Filter by livestock type if specified
-      if (filterParams.livestock_type) {
-        filtered = filtered.filter(farm => farm.livestock_type === filterParams.livestock_type);
-      }
-      // If livestock_type is empty string, keep all farms with any livestock_type
-      else {
-        filtered = filtered.filter(farm => farm.livestock_type);
-      }
-    }
-    
-    // Update state with filtered farms
-    setFilteredFarms(filtered);
-    
-    // Call callback with filtered farms
-    onFarmsLoaded(filtered);
-    
-    // Reset the bounds flag when filters change
-    if (currentFilterString !== prevFilterString) {
-      boundsSetRef.current = false;
-    }
+    applyFilters();
   }, [visible, allFarms, filterParams, onFarmsLoaded]);
   
-  // Fit map to bounds when filtered farms change - but only on initial load
+  // Fit bounds to filtered farms when needed
   useEffect(() => {
-    // Skip if:
-    // - Layer is not visible
-    // - No filtered farms
-    // - Bounds already set
-    // - Auto-zoom is explicitly prevented
-    if (!visible || filteredFarms.length === 0 || boundsSetRef.current || preventAutoZoom) {
-      // Mark as fitted if preventing auto-zoom
-      if (preventAutoZoom) {
+    // Skip if not visible, no farms, or bounds already set
+    if (!visible || filteredFarms.length === 0 || boundsSetRef.current) return;
+    
+    // Create GeoJSON features for each farm
+    const validFarms = filteredFarms.filter(farm => farm.geom);
+    
+    if (validFarms.length === 0) return;
+    
+    try {
+      console.log(`Fitting bounds to ${validFarms.length} farms`);
+      
+      // Create GeoJSON layers for all farms
+      const farmLayers = validFarms.map(farm => {
+        return L.geoJSON(farm.geom);
+      });
+      
+      // Create a feature group with all farm layers
+      const featureGroup = L.featureGroup(farmLayers);
+      const bounds = featureGroup.getBounds();
+      
+      if (bounds.isValid()) {
+        // Fit the map to the bounds with padding
+        map.fitBounds(bounds, {
+          padding: [50, 50],
+          maxZoom: 14
+        });
+        
+        // Mark that we've set bounds
         boundsSetRef.current = true;
       }
-      return;
+    } catch (error) {
+      console.error('Error fitting to farm bounds:', error);
     }
-    
-    // Check if this is an initial load or a filter change
-    const isFilterChange = prevFilterParamsRef.current && Object.keys(prevFilterParamsRef.current).length > 0;
-    
-    // Only fit to bounds on initial load, not on manual zooming
-    if (isFilterChange) {
-      boundsSetRef.current = true;
-      return;
-    }
-    
-    console.log("AUTO-FITTING TO BOUNDS NOW");
-    
-    // Create a feature collection from farm geometries
-    const features = filteredFarms
-      .filter(farm => farm.geom)
-      .map(farm => ({
-        type: 'Feature',
-        geometry: farm.geom
-      }));
-    
-    if (features.length > 0) {
-      try {
-        const featureCollection = {
-          type: 'FeatureCollection',
-          features
-        };
-        
-        // Create a temporary layer and get bounds
-        const tempLayer = L.geoJSON(featureCollection);
-        const bounds = tempLayer.getBounds();
-        
-        if (bounds.isValid()) {
-          // Add a small delay to ensure map is ready
-          setTimeout(() => {
-            // Fit bounds with padding
-            map.fitBounds(bounds, {
-              padding: [50, 50],
-              animate: true
-            });
-          }, 100);
-          
-          boundsSetRef.current = true;
-        }
-      } catch (e) {
-        console.error('Error fitting to farm bounds:', e);
-      }
-    }
-  }, [visible, filteredFarms, map, preventAutoZoom]);
+  }, [map, visible, filteredFarms]);
   
-  // Handle farm click
-  const handleFarmClick = (farm) => {
-    if (onSelectFarm && typeof onSelectFarm === 'function') {
-      onSelectFarm(farm);
-    }
-  };
-  
-  // Don't render anything if layer is not visible
+  // Don't render if not visible
   if (!visible) return null;
   
-  // Determine rendering mode based on zoom level
-  const showPolygons = shouldShowPolygons(currentZoom, ZOOM_THRESHOLD);
-  const markerRadius = getFarmMarkerSize(currentZoom);
+  // Show loading indicator
+  if (isLoading && filteredFarms.length === 0) {
+    return (
+      <div className="absolute bottom-16 left-4 bg-white p-2 rounded-md shadow-md z-50">
+        <div className="flex items-center space-x-2">
+          <div className="w-5 h-5 border-t-2 border-kitovu-purple rounded-full animate-spin"></div>
+          <span className="text-sm">Loading farms...</span>
+        </div>
+      </div>
+    );
+  }
   
-  // Render farms layer
+  // Show error message if any
+  if (error && !isLoading && filteredFarms.length === 0) {
+    return (
+      <div className="absolute bottom-16 left-4 bg-red-50 p-2 rounded-md shadow-md z-50 border-l-4 border-red-500">
+        <span className="text-sm text-red-700">{error}</span>
+      </div>
+    );
+  }
+  
+  // Show message if no farms match the filter
+  if (filteredFarms.length === 0 && !isLoading) {
+    return (
+      <div className="absolute bottom-16 left-4 bg-yellow-50 p-2 rounded-md shadow-md z-50 border-l-4 border-yellow-500">
+        <span className="text-sm text-yellow-700">No farms match the selected filter</span>
+      </div>
+    );
+  }
+  
+  // Calculate if we should show polygons based on zoom level
+  const showPolygons = currentZoom >= ZOOM_THRESHOLD;
+  const markerSize = getFarmMarkerSize(currentZoom);
+  
+  // Render farms on the map
   return (
     <>
-      {farmsWithCentroids.length > 0 ? (
-        farmsWithCentroids.map(farm => {
-          // Skip farms without geometry
-          if (!farm.geom) return null;
-          
-          // Get farm style
-          const style = getFarmStyle(farm);
-          
-          // Render as point for low zoom levels
-          if (!showPolygons && farm.centroid) {
-            return (
-              <CircleMarker
-                key={farm.id}
-                center={farm.centroid}
-                radius={markerRadius}
-                pathOptions={{
-                  fillColor: style.fillColor,
-                  color: style.color,
-                  fillOpacity: 0.8,
-                  weight: 1.5
-                }}
-                eventHandlers={{
-                  click: () => handleFarmClick(farm)
-                }}
-              >
-                <FarmPopup farm={farm} includeFarmerDetails={false} />
-              </CircleMarker>
-            );
-          }
-          
-          // Render as polygon for high zoom levels
+      {filteredFarms.map(farm => {
+        if (!farm.geom) return null;
+        
+        // Calculate centroid if not already available
+        const centroid = farm.centroid || calculateCentroid(farm.geom);
+        
+        // Show points at low zoom levels
+        if (!showPolygons && centroid) {
           return (
-            <GeoJSON
-              key={farm.id}
-              data={farm.geom}
-              style={() => style}
+            <CircleMarker
+              key={`farm-${farm.id}-marker`}
+              center={centroid}
+              radius={markerSize}
+              pathOptions={{
+                fillColor: getFarmStyle(farm).fillColor,
+                color: getFarmStyle(farm).color,
+                fillOpacity: 0.8,
+                weight: 1.5
+              }}
               eventHandlers={{
-                click: () => handleFarmClick(farm)
+                click: () => onSelectFarm(farm)
               }}
             >
               <FarmPopup farm={farm} includeFarmerDetails={false} />
-            </GeoJSON>
+            </CircleMarker>
           );
-        })
-      ) : !isLoading && (
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white px-4 py-3 rounded-md shadow-md z-[1000]">
-          <div className="flex items-center space-x-2 text-gray-600">
-            <span className="text-sm">No farms match the selected criteria</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Farm visualization info panel */}
-      {showInfoPanel && filteredFarms.length > 0 && (
-        <FarmVisualizationInfo 
-          showPolygons={showPolygons}
-          currentZoom={currentZoom}
-          threshold={ZOOM_THRESHOLD}
-        />
-      )}
-      
-      {/* Loading indicator */}
-      {isLoading && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white px-4 py-2 rounded-md shadow-md z-[1000]">
-          <div className="flex items-center space-x-2">
-            <div className="animate-spin h-4 w-4 border-2 border-kitovu-purple border-t-transparent rounded-full"></div>
-            <span className="text-sm text-gray-700">Loading farms...</span>
-          </div>
-        </div>
-      )}
-      
-      {/* Error message */}
-      {error && (
-        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-red-50 px-4 py-2 rounded-md shadow-md z-[1000]">
-          <div className="flex items-center space-x-2 text-red-600">
-            <span className="text-sm">{error}</span>
-          </div>
-        </div>
-      )}
+        }
+        
+        // Show polygons at high zoom levels
+        return (
+          <GeoJSON
+            key={`farm-${farm.id}-polygon`}
+            data={farm.geom}
+            style={() => getFarmStyle(farm)}
+            eventHandlers={{
+              click: () => onSelectFarm(farm)
+            }}
+          >
+            <FarmPopup farm={farm} includeFarmerDetails={false} />
+          </GeoJSON>
+        );
+      })}
     </>
   );
 };

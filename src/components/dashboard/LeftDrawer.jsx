@@ -30,8 +30,11 @@ const LeftDrawer = ({
   onCropTypeFilterChange = () => {},
   livestockTypeFilter,
   onLivestockTypeFilterChange = () => {},
+  communityFilter,
+  onCommunityFilterChange = () => {},
   cropOptions = [],
-  livestockOptions = []
+  livestockOptions = [],
+  communityOptions = []
 }) => {
   // Filter layers by category
   const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
@@ -134,7 +137,7 @@ const LeftDrawer = ({
         </div>
       </div>
 
-      {/* Farms Section - New */}
+      {/* Farms Section */}
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <LandPlot className="h-5 w-5 text-kitovu-purple mr-2" />
@@ -255,6 +258,41 @@ const LeftDrawer = ({
                   {livestockOptions.map(livestock => (
                     <option key={livestock} value={livestock}>
                       {livestock.charAt(0).toUpperCase() + livestock.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+          
+          {/* Farms by Community */}
+          <div>
+            <div className="flex items-start">
+              <input
+                type="radio"
+                id="farm-layer-community"
+                name="farmLayer"
+                checked={activeFarmLayer === 'community'}
+                onChange={() => handleFarmLayerChange('community')}
+                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
+              />
+              <label htmlFor="farm-layer-community" className="ml-2 block text-sm">
+                <span className="font-medium">Farms by Community</span>
+              </label>
+            </div>
+            
+            {/* Community Dropdown - Only show when Farms by Community is selected */}
+            {activeFarmLayer === 'community' && (
+              <div className="ml-6 mt-2">
+                <select 
+                  value={communityFilter || ''}
+                  onChange={(e) => onCommunityFilterChange(e.target.value)}
+                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+                >
+                  <option value="">Select Community</option>
+                  {communityOptions.map(community => (
+                    <option key={community} value={community}>
+                      {community}
                     </option>
                   ))}
                 </select>
