@@ -174,6 +174,46 @@ const FarmPopup = ({ farm, includeFarmerDetails = false }) => {
               <p className="font-medium text-gray-800">{farm.number_of_animals}</p>
             </div>
           )}
+
+          {/* Distance to Farm */}
+          {farm.distance_to_farm_km && (
+            <div className="mb-2">
+              <div className="flex items-center mb-1">
+                <svg className="w-4 h-4 text-kitovu-purple mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                <span className="text-xs font-semibold text-gray-500">Distance to Farm</span>
+              </div>
+              <p className="font-medium text-gray-800">{farm.distance_to_farm_km} km</p>
+            </div>
+          )}
+          
+          {/* Crop Yield (for crop farms) */}
+          {farm.farm_type === 'crop_farming' && farm.crop_yield && (
+            <div className="mb-2">
+              <div className="flex items-center mb-1">
+                <svg className="w-4 h-4 text-kitovu-purple mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span className="text-xs font-semibold text-gray-500">Crop Yield</span>
+              </div>
+              <p className="font-medium text-gray-800">{farm.crop_yield} tons/acre</p>
+            </div>
+          )}
+          
+          {/* Livestock Yield (for livestock farms) */}
+          {farm.farm_type === 'livestock_farming' && farm.livestock_yield && (
+            <div className="mb-2">
+              <div className="flex items-center mb-1">
+                <svg className="w-4 h-4 text-kitovu-purple mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+                <span className="text-xs font-semibold text-gray-500">Livestock Yield</span>
+              </div>
+              <p className="font-medium text-gray-800">{farm.livestock_yield} per animal</p>
+            </div>
+          )}
           
           {/* Lease information (if applicable) */}
           {farm.ownership_status === 'leased' && (farm.lease_years || farm.lease_months) && (
