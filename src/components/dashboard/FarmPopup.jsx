@@ -1,7 +1,7 @@
 // src/components/dashboard/FarmPopup.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { Popup } from 'react-leaflet';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sprout } from 'lucide-react';
 import { getFarmers } from '../../services/api/farmerQuery.service';
 
 // Cache to store farmer details to prevent duplicate API calls
@@ -12,9 +12,9 @@ const farmerCache = {};
  * @param {Object} props - Component props
  * @param {Object} props.farm - Farm object with details
  * @param {boolean} props.includeFarmerDetails - Whether to fetch and display farmer details
- * @param {Function} props.onClose - Function to call when popup is closed
+ * @param {Function} props.onAdvisoryClick - Function to call when advisory button is clicked
  */
-const FarmPopup = ({ farm, includeFarmerDetails = false }) => {
+const FarmPopup = ({ farm, includeFarmerDetails = false, onAdvisoryClick }) => {
   const [farmerDetails, setFarmerDetails] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -60,6 +60,18 @@ const FarmPopup = ({ farm, includeFarmerDetails = false }) => {
     
     fetchFarmerDetails();
   }, [farm, includeFarmerDetails, farmerDetails, isLoading]);
+
+  // Handle advisory button click
+  const handleAdvisoryClick = (e) => {
+    e.stopPropagation(); // Prevent popup from closing
+    console.log('Advisory button clicked for farm:', farm.id);
+    
+    if (onAdvisoryClick && typeof onAdvisoryClick === 'function') {
+      onAdvisoryClick(farm);
+    } else {
+      console.warn('onAdvisoryClick function not provided');
+    }
+  };
 
   if (!farm) return null;
 
@@ -233,6 +245,20 @@ const FarmPopup = ({ farm, includeFarmerDetails = false }) => {
               </div>
             </>
           )}
+          
+          {/* Advisory Button */}
+          <div className="border-t border-gray-200 mt-3 pt-3">
+            <button
+              onClick={handleAdvisoryClick}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium py-2 px-4 rounded-md transition-all duration-200 flex items-center justify-center space-x-2 shadow-sm"
+            >
+              <Sprout className="h-4 w-4" />
+              <span>Get Advisory</span>
+            </button>
+            <p className="text-xs text-gray-500 mt-1 text-center">
+              Get personalized recommendations for this farm
+            </p>
+          </div>
         </div>
         
         {/* Footer */}
