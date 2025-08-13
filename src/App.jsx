@@ -7,6 +7,7 @@ import Layout from './components/layout/Layout';
 import Login from './pages/Login';
 import FarmerRegistration from './pages/FarmerRegistration';
 import Dashboard from './pages/Dashboard';
+import AdvisoryReport from './pages/AdvisoryReport';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -39,6 +40,14 @@ function App() {
                   <Layout>
                     <FarmerRegistration />
                   </Layout>
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/advisory-report"
+              element={
+                <ProtectedRoute>
+                  <AdvisoryReport />
                 </ProtectedRoute>
               }
             />

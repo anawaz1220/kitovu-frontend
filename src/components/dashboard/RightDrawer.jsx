@@ -1,8 +1,8 @@
 // src/components/dashboard/RightDrawer.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import { X, User, Phone, MapPin, Calendar, CreditCard, User2, Tractor, Loader2, Users } from 'lucide-react';
+import { X, User, Phone, MapPin, Calendar, CreditCard, User2, Tractor, Loader2, Users, RefreshCw } from 'lucide-react';
 import defaultUserImage from '../../assets/images/default-user.svg';
-import { getFarmsByFarmerId } from '../../services/api/farmerQuery.service';
+import { getFarmerById, getFarmsByFarmerId } from '../../services/api/farmerQuery.service';
 
 // Base URL for images - use your development server URL
 const IMAGE_BASE_URL = 'http://localhost:3000';
@@ -64,66 +64,180 @@ const getImageUrl = (imagePath) => {
 };
 
 const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoaded }) => {
+  const [farmerDetails, setFarmerDetails] = useState(null);
   const [farms, setFarms] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [isLoadingFarmer, setIsLoadingFarmer] = useState(false);
+  const [isLoadingFarms, setIsLoadingFarms] = useState(false);
+  const [farmerError, setFarmerError] = useState(null);
+  const [farmsError, setFarmsError] = useState(null);
+  
   const fetchedFarmerIdRef = useRef(null);
   const [farmerImageError, setFarmerImageError] = useState(false);
   const [idDocumentImageError, setIdDocumentImageError] = useState(false);
   
-  // Fetch farms when a farmer is selected
+  // Fetch farmer details when selectedFarmer changes
   useEffect(() => {
-    const fetchFarms = async () => {
-      if (!isOpen || !selectedFarmer || !selectedFarmer.farmer_id) return;
-      
+    const fetchFarmerDetails = async () => {
+      if (!isOpen || !selectedFarmer || !selectedFarmer.farmer_id) {
+        setFarmerDetails(null);
+        return;
+      }
+
+      // If we already have the farmer data from search results, check if it's complete
+      if (selectedFarmer.first_name && selectedFarmer.last_name) {
+        console.log('Using farmer data from search selection');
+        setFarmerDetails(selectedFarmer);
+        fetchedFarmerIdRef.current = selectedFarmer.farmer_id;
+        return;
+      }
+
       // Prevent duplicate fetches for the same farmer
       if (fetchedFarmerIdRef.current === selectedFarmer.farmer_id) return;
-      
-      setIsLoading(true);
-      setError(null);
-      
+
+      setIsLoadingFarmer(true);
+      setFarmerError(null);
+
       try {
-        console.log('Fetching farms for farmer ID:', selectedFarmer.farmer_id);
-        const farmsData = await getFarmsByFarmerId(selectedFarmer.farmer_id);
+        console.log('Fetching detailed farmer information for ID:', selectedFarmer.farmer_id);
+        const farmer = await getFarmerById(selectedFarmer.farmer_id);
+        setFarmerDetails(farmer);
+        fetchedFarmerIdRef.current = selectedFarmer.farmer_id;
+      } catch (err) {
+        console.error('Error fetching farmer details:', err);
+        setFarmerError('Failed to load farmer details');
+        setFarmerDetails(null);
+      } finally {
+        setIsLoadingFarmer(false);
+      }
+    };
+
+    fetchFarmerDetails();
+    
+    // Reset image error states when selected farmer changes
+    setFarmerImageError(false);
+    setIdDocumentImageError(false);
+  }, [selectedFarmer?.farmer_id, isOpen]);
+
+  // Fetch farms when farmer details are loaded
+  useEffect(() => {
+    const fetchFarms = async () => {
+      if (!farmerDetails || !farmerDetails.farmer_id) {
+        setFarms([]);
+        return;
+      }
+
+      setIsLoadingFarms(true);
+      setFarmsError(null);
+
+      try {
+        console.log('Fetching farms for farmer ID:', farmerDetails.farmer_id);
+        const farmsData = await getFarmsByFarmerId(farmerDetails.farmer_id);
         setFarms(farmsData);
         
         // Pass farms data up to parent component for map display
         if (onFarmsLoaded && typeof onFarmsLoaded === 'function') {
           onFarmsLoaded(farmsData);
         }
-        
-        // Remember this farmer ID so we don't fetch again
-        fetchedFarmerIdRef.current = selectedFarmer.farmer_id;
       } catch (err) {
         console.error('Error fetching farms:', err);
-        setError('Failed to load farms data');
+        setFarmsError('Failed to load farms data');
+        setFarms([]);
+        if (onFarmsLoaded && typeof onFarmsLoaded === 'function') {
+          onFarmsLoaded([]);
+        }
       } finally {
-        setIsLoading(false);
+        setIsLoadingFarms(false);
       }
     };
-    
+
     fetchFarms();
+  }, [farmerDetails?.farmer_id, onFarmsLoaded]);
+
+  // Handle refresh of farmer data
+  const handleRefreshFarmer = async () => {
+    if (!selectedFarmer?.farmer_id) return;
     
-    // Reset image error states when selected farmer changes
-    setFarmerImageError(false);
-    setIdDocumentImageError(false);
-  }, [selectedFarmer?.farmer_id, isOpen, onFarmsLoaded]); // Only depend on farmer_id, not the entire farmer object
+    // Clear cache and refetch
+    fetchedFarmerIdRef.current = null;
+    setFarmerDetails(null);
+    setFarms([]);
+    
+    // Trigger refetch by updating the effect dependency
+    const farmer = { ...selectedFarmer };
+    delete farmer.first_name; // Remove cached data to force API call
+    // This will trigger the useEffect to fetch fresh data
+  };
 
   // Don't render anything if drawer is not open or no farmer is selected
   if (!isOpen || !selectedFarmer) {
     return null;
   }
-  
+
+  // Show loading state while fetching farmer details
+  if (isLoadingFarmer || (!farmerDetails && !farmerError)) {
+    return (
+      <div 
+        className={`bg-white w-80 shadow-lg h-full border-l transition-all duration-300 overflow-y-auto
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'} z-20`}
+        style={{ position: 'absolute', top: 0, bottom: 0, right: 0 }}
+      >
+        <div className="p-4 flex justify-between items-center border-b bg-kitovu-purple text-white">
+          <h2 className="text-lg font-medium">Farmer Details</h2>
+          <button onClick={onClose} className="text-white hover:text-gray-200">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 text-kitovu-purple animate-spin" />
+          <p className="mt-4 text-gray-600">Loading farmer details...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if farmer fetch failed
+  if (farmerError && !farmerDetails) {
+    return (
+      <div 
+        className={`bg-white w-80 shadow-lg h-full border-l transition-all duration-300 overflow-y-auto
+          ${isOpen ? 'translate-x-0' : 'translate-x-full'} z-20`}
+        style={{ position: 'absolute', top: 0, bottom: 0, right: 0 }}
+      >
+        <div className="p-4 flex justify-between items-center border-b bg-kitovu-purple text-white">
+          <h2 className="text-lg font-medium">Farmer Details</h2>
+          <button onClick={onClose} className="text-white hover:text-gray-200">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+        
+        <div className="flex flex-col items-center justify-center h-64 p-4">
+          <div className="text-red-500 text-center">
+            <p className="font-medium">Error Loading Farmer</p>
+            <p className="text-sm mt-2">{farmerError}</p>
+            <button
+              onClick={handleRefreshFarmer}
+              className="mt-4 px-4 py-2 bg-kitovu-purple text-white rounded-md hover:bg-purple-700 flex items-center"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Format date of birth if available
-  const formattedDob = formatDate(selectedFarmer.date_of_birth);
+  const formattedDob = formatDate(farmerDetails.date_of_birth);
 
   // Helper function to display address
   const getFullAddress = () => {
     const parts = [
-      selectedFarmer.street_address,
-      selectedFarmer.city,
-      selectedFarmer.lga,
-      selectedFarmer.state,
+      farmerDetails.street_address,
+      farmerDetails.city,
+      farmerDetails.lga,
+      farmerDetails.state,
       'Nigeria'
     ].filter(Boolean);
     
@@ -149,17 +263,14 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
     setIdDocumentImageError(true);
   };
   
-  // IMPORTANT: We're swapping these variables based on your feedback
-  // that the images are reversed in the API response
-  
-  // For the profile picture, use the ID document picture field
-  const farmerImageSrc = !farmerImageError && selectedFarmer.farmer_picture 
-    ? getImageUrl(selectedFarmer.farmer_picture) 
+  // For the profile picture, use the farmer picture field
+  const farmerImageSrc = !farmerImageError && farmerDetails.farmer_picture 
+    ? getImageUrl(farmerDetails.farmer_picture) 
     : defaultUserImage;
     
-  // For the ID document, use the farmer picture field
-  const idDocumentImageSrc = !idDocumentImageError && selectedFarmer.id_document_picture 
-    ? getImageUrl(selectedFarmer.id_document_picture) 
+  // For the ID document, use the ID document picture field
+  const idDocumentImageSrc = !idDocumentImageError && farmerDetails.id_document_picture 
+    ? getImageUrl(farmerDetails.id_document_picture) 
     : defaultUserImage;
 
   return (
@@ -171,12 +282,21 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
       {/* Drawer Header */}
       <div className="p-4 flex justify-between items-center border-b bg-kitovu-purple text-white">
         <h2 className="text-lg font-medium">Farmer Details</h2>
-        <button 
-          onClick={onClose}
-          className="text-white hover:text-gray-200"
-        >
-          <X className="h-5 w-5" />
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleRefreshFarmer}
+            className="text-white hover:text-gray-200"
+            title="Refresh farmer data"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button 
+            onClick={onClose}
+            className="text-white hover:text-gray-200"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Farmer Details */}
@@ -186,16 +306,16 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
           <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-2 border-kitovu-purple">
             <img 
               src={farmerImageSrc}
-              alt={`${selectedFarmer.first_name} ${selectedFarmer.last_name}`}
+              alt={`${farmerDetails.first_name} ${farmerDetails.last_name}`}
               className="w-full h-full object-cover"
               onError={handleFarmerImageError}
             />
           </div>
           <h3 className="text-xl font-bold text-center text-gray-800">
-            {selectedFarmer.first_name} {selectedFarmer.last_name}
+            {farmerDetails.first_name} {farmerDetails.last_name}
           </h3>
           <span className="text-sm text-gray-500 mt-1">
-            Farmer ID: {selectedFarmer.farmer_id}
+            Farmer ID: {farmerDetails.farmer_id}
           </span>
         </div>
 
@@ -206,7 +326,7 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <User className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-gray-500">Gender</p>
-              <p className="text-gray-800">{selectedFarmer.gender || 'Not specified'}</p>
+              <p className="text-gray-800">{farmerDetails.gender || 'Not specified'}</p>
             </div>
           </div>
 
@@ -224,9 +344,9 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <Phone className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-gray-500">Phone Number</p>
-              <p className="text-gray-800">{selectedFarmer.phone_number || 'Not specified'}</p>
-              {selectedFarmer.alternate_phone_number && (
-                <p className="text-gray-600 text-sm">Alt: {selectedFarmer.alternate_phone_number}</p>
+              <p className="text-gray-800">{farmerDetails.phone_number || 'Not specified'}</p>
+              {farmerDetails.alternate_phone_number && (
+                <p className="text-gray-600 text-sm">Alt: {farmerDetails.alternate_phone_number}</p>
               )}
             </div>
           </div>
@@ -246,8 +366,8 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <div>
               <p className="text-sm font-medium text-gray-500">ID Information</p>
               <p className="text-gray-800">
-                {selectedFarmer.id_type ? 
-                  `${selectedFarmer.id_type.replace(/_/g, ' ')} - ${selectedFarmer.id_number}` : 
+                {farmerDetails.id_type ? 
+                  `${farmerDetails.id_type.replace(/_/g, ' ')} - ${farmerDetails.id_number}` : 
                   'Not specified'}
               </p>
             </div>
@@ -271,9 +391,9 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <User2 className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-gray-500">Created By</p>
-              <p className="text-gray-800">{selectedFarmer.created_by || 'Not specified'}</p>
+              <p className="text-gray-800">{farmerDetails.created_by || 'Not specified'}</p>
               <p className="text-xs text-gray-500">
-                {formatDate(selectedFarmer.created_at)}
+                {formatDate(farmerDetails.created_at)}
               </p>
             </div>
           </div>
@@ -284,13 +404,28 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             <div className="w-full">
               <p className="text-sm font-medium text-gray-500 mb-2">Farm(s)</p>
               
-              {isLoading ? (
+              {isLoadingFarms ? (
                 <div className="flex items-center justify-center py-3">
                   <Loader2 className="h-5 w-5 text-kitovu-purple animate-spin" />
                   <span className="ml-2 text-sm text-gray-500">Loading farms...</span>
                 </div>
-              ) : error ? (
-                <div className="text-sm text-red-500 py-2">{error}</div>
+              ) : farmsError ? (
+                <div className="text-sm text-red-500 py-2">
+                  {farmsError}
+                  <button
+                    onClick={() => {
+                      setFarms([]);
+                      setFarmsError(null);
+                      // Trigger refetch by clearing and setting farmer details
+                      const currentFarmer = farmerDetails;
+                      setFarmerDetails(null);
+                      setTimeout(() => setFarmerDetails(currentFarmer), 100);
+                    }}
+                    className="block mt-2 text-xs text-kitovu-purple hover:underline"
+                  >
+                    Try again
+                  </button>
+                </div>
               ) : farms.length === 0 ? (
                 <p className="text-sm text-gray-500">No farms registered</p>
               ) : (
@@ -329,31 +464,31 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
                 <div>
                   <p className="text-sm font-medium text-gray-600">Cooperative Member</p>
                   <p className="text-gray-800">
-                    {selectedFarmer.member_of_cooperative === true 
+                    {farmerDetails.member_of_cooperative === true 
                       ? 'Yes' 
-                      : selectedFarmer.member_of_cooperative === false 
+                      : farmerDetails.member_of_cooperative === false 
                         ? 'No' 
                         : 'Not specified'}
                   </p>
                 </div>
                 
                 {/* Show cooperative details only if member */}
-                {selectedFarmer.member_of_cooperative === true && (
+                {farmerDetails.member_of_cooperative === true && (
                   <>
                     {/* Cooperative Name */}
-                    {selectedFarmer.cooperative_name && (
+                    {farmerDetails.cooperative_name && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Cooperative Name</p>
-                        <p className="text-gray-800">{selectedFarmer.cooperative_name}</p>
+                        <p className="text-gray-800">{farmerDetails.cooperative_name}</p>
                       </div>
                     )}
                     
                     {/* Cooperative Activities */}
-                    {selectedFarmer.cooperative_activities && (
+                    {farmerDetails.cooperative_activities && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Activities</p>
                         <p className="text-gray-800">
-                          {formatCooperativeActivities(selectedFarmer.cooperative_activities)}
+                          {formatCooperativeActivities(farmerDetails.cooperative_activities)}
                         </p>
                       </div>
                     )}
@@ -373,10 +508,10 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
               
               <div className="space-y-2">
                 {/* Education */}
-                {selectedFarmer.education && (
+                {farmerDetails.education && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Education Level</p>
-                    <p className="text-gray-800">{selectedFarmer.education}</p>
+                    <p className="text-gray-800">{farmerDetails.education}</p>
                   </div>
                 )}
                 
@@ -384,28 +519,28 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
                 <div>
                   <p className="text-sm font-medium text-gray-600">Agricultural Training</p>
                   <p className="text-gray-800">
-                    {selectedFarmer.agricultural_training === true 
+                    {farmerDetails.agricultural_training === true 
                       ? 'Yes' 
-                      : selectedFarmer.agricultural_training === false 
+                      : farmerDetails.agricultural_training === false 
                         ? 'No' 
                         : 'Not specified'}
                   </p>
                 </div>
                 
                 {/* Training Provider (if has training) */}
-                {selectedFarmer.agricultural_training === true && selectedFarmer.training_provider && (
+                {farmerDetails.agricultural_training === true && farmerDetails.training_provider && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Training Provider</p>
-                    <p className="text-gray-800">{selectedFarmer.training_provider}</p>
+                    <p className="text-gray-800">{farmerDetails.training_provider}</p>
                   </div>
                 )}
                 
                 {/* Certificate Issued */}
-                {selectedFarmer.agricultural_training === true && selectedFarmer.certificate_issued !== null && (
+                {farmerDetails.agricultural_training === true && farmerDetails.certificate_issued !== null && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Certificate Issued</p>
                     <p className="text-gray-800">
-                      {selectedFarmer.certificate_issued ? 'Yes' : 'No'}
+                      {farmerDetails.certificate_issued ? 'Yes' : 'No'}
                     </p>
                   </div>
                 )}
@@ -426,49 +561,49 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
                 <div>
                   <p className="text-sm font-medium text-gray-600">Received Financing</p>
                   <p className="text-gray-800">
-                    {selectedFarmer.received_financing === true 
+                    {farmerDetails.received_financing === true 
                       ? 'Yes' 
-                      : selectedFarmer.received_financing === false 
+                      : farmerDetails.received_financing === false 
                         ? 'No' 
                         : 'Not specified'}
                   </p>
                 </div>
                 
                 {/* Show financing details only if received financing */}
-                {selectedFarmer.received_financing === true && (
+                {farmerDetails.received_financing === true && (
                   <>
                     {/* Finance Provider */}
-                    {selectedFarmer.finance_provider && (
+                    {farmerDetails.finance_provider && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Finance Provider</p>
-                        <p className="text-gray-800">{selectedFarmer.finance_provider}</p>
+                        <p className="text-gray-800">{farmerDetails.finance_provider}</p>
                       </div>
                     )}
                     
                     {/* Finance Amount */}
-                    {selectedFarmer.finance_amount !== null && (
+                    {farmerDetails.finance_amount !== null && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Finance Amount</p>
-                        <p className="text-gray-800">₦{selectedFarmer.finance_amount.toLocaleString()}</p>
+                        <p className="text-gray-800">₦{farmerDetails.finance_amount.toLocaleString()}</p>
                       </div>
                     )}
                     
                     {/* Interest Rate */}
-                    {selectedFarmer.interest_rate !== null && (
+                    {farmerDetails.interest_rate !== null && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Interest Rate</p>
-                        <p className="text-gray-800">{selectedFarmer.interest_rate}%</p>
+                        <p className="text-gray-800">{farmerDetails.interest_rate}%</p>
                       </div>
                     )}
                     
                     {/* Financing Duration */}
-                    {(selectedFarmer.financing_duration_years !== null || selectedFarmer.financing_duration_months !== null) && (
+                    {(farmerDetails.financing_duration_years !== null || farmerDetails.financing_duration_months !== null) && (
                       <div>
                         <p className="text-sm font-medium text-gray-600">Financing Duration</p>
                         <p className="text-gray-800">
-                          {(selectedFarmer.financing_duration_years > 0 ? `${selectedFarmer.financing_duration_years} year${selectedFarmer.financing_duration_years !== 1 ? 's' : ''}` : '')} 
-                          {(selectedFarmer.financing_duration_years > 0 && selectedFarmer.financing_duration_months > 0) ? ' ' : ''}
-                          {(selectedFarmer.financing_duration_months > 0 ? `${selectedFarmer.financing_duration_months} month${selectedFarmer.financing_duration_months !== 1 ? 's' : ''}` : '')}
+                          {(farmerDetails.financing_duration_years > 0 ? `${farmerDetails.financing_duration_years} year${farmerDetails.financing_duration_years !== 1 ? 's' : ''}` : '')} 
+                          {(farmerDetails.financing_duration_years > 0 && farmerDetails.financing_duration_months > 0) ? ' ' : ''}
+                          {(farmerDetails.financing_duration_months > 0 ? `${farmerDetails.financing_duration_months} month${farmerDetails.financing_duration_months !== 1 ? 's' : ''}` : '')}
                         </p>
                       </div>
                     )}
@@ -488,23 +623,38 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
               
               <div className="space-y-2">
                 {/* Marketing Channel */}
-                {selectedFarmer.marketing_channel && (
+                {farmerDetails.marketing_channel && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Marketing Channel</p>
-                    <p className="text-gray-800">{selectedFarmer.marketing_channel}</p>
+                    <p className="text-gray-800">{farmerDetails.marketing_channel}</p>
                   </div>
                 )}
                 
                 {/* Offtaker Name */}
-                {selectedFarmer.offtaker_name && (
+                {farmerDetails.offtaker_name && (
                   <div>
                     <p className="text-sm font-medium text-gray-600">Offtaker</p>
-                    <p className="text-gray-800">{selectedFarmer.offtaker_name}</p>
+                    <p className="text-gray-800">{farmerDetails.offtaker_name}</p>
                   </div>
                 )}
               </div>
             </div>
           </div>
+
+          {/* Remarks Section */}
+            <div className="flex items-start mt-4 pt-4 border-t">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-1.586l-4.707 4.707z" />
+              </svg>
+              <div className="w-full">
+                <p className="text-sm font-medium text-gray-500 mb-2">Remarks</p>
+                <div className="bg-gray-50 p-3 rounded-md">
+                  <p className="text-gray-800 text-sm">
+                    {farmerDetails.remarks || 'No remarks available'}
+                  </p>
+                </div>
+              </div>
+            </div>
 
         </div>
       </div>

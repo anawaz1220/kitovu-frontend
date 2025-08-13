@@ -12,6 +12,7 @@ import MapUpdater from './MapUpdater';
 import DataLayers from './DataLayers';
 import MeasurementControl from './MeasurementControl';
 import FarmPopup from './FarmPopup';
+import AdvisoryInputModal from '../advisory/AdvisoryInputModal';
 
 // Memoized controller to prevent unnecessary rerenders
 const MapController = memo(({ selectedFarmer, selectedFarm, farmerFarms }) => {
@@ -196,7 +197,7 @@ const MapController = memo(({ selectedFarmer, selectedFarm, farmerFarms }) => {
 });
 
 // Memoized GeoJSON component to prevent unnecessary rerenders
-const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom }) => {
+const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom, onAdvisoryClick }) => {
   // Get farm style based on farm type and selection state
   const farmStyle = useMemo(() => {
     const baseStyle = getFarmStyle(farm);
@@ -246,7 +247,7 @@ const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom }) => 
           click: () => onClick && onClick(farm)
         }}
       >
-        <FarmPopup farm={farm} includeFarmerDetails={false} />
+        <FarmPopup farm={farm} includeFarmerDetails={false} onAdvisoryClick={onAdvisoryClick} />
       </CircleMarker>
     );
   }
@@ -260,7 +261,7 @@ const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom }) => 
         click: () => onClick && onClick(farm)
       }}
     >
-      <FarmPopup farm={farm} includeFarmerDetails={false} />
+      <FarmPopup farm={farm} includeFarmerDetails={false} onAdvisoryClick={onAdvisoryClick} />
     </GeoJSON>
   );
 });
@@ -307,6 +308,8 @@ const MapContainer = ({
   children
 }) => {
   const [currentZoom, setCurrentZoom] = useState(defaultZoom);
+  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false);
+  const [selectedFarmForAdvisory, setSelectedFarmForAdvisory] = useState(null);
   
   // Render the map only once (stability)
   const memoizedMapProps = useMemo(() => ({
@@ -346,6 +349,19 @@ const MapContainer = ({
       }
     };
   }, [onFarmSelect]);
+
+  // Handle advisory button click
+  const handleAdvisoryClick = (farm) => {
+    console.log('Advisory clicked for farm:', farm);
+    setSelectedFarmForAdvisory(farm);
+    setShowAdvisoryModal(true);
+  };
+
+  // Handle advisory modal close
+  const handleAdvisoryModalClose = () => {
+    setShowAdvisoryModal(false);
+    setSelectedFarmForAdvisory(null);
+  };
   
   // Render marker for selected farmer
   const renderFarmerMarker = useMemo(() => {
@@ -371,46 +387,56 @@ const MapContainer = ({
   };
 
   return (
-    <div className="w-full h-full absolute inset-0" style={{ zIndex: 1 }}>
-      <LeafletMap {...memoizedMapProps}>
-        {/* Base layers */}
-        <TileLayer {...tileLayerProps} />
-        <ZoomControl position="bottomright" />
-        <MapUpdater basemap={basemap} />
-        <MapZoomProtector />
-        
-        {/* Zoom monitor */}
-        <ZoomMonitor onZoomChange={handleZoomChange} />
-        
-        {/* Map controller - encapsulated in memo to prevent unnecessary rerenders */}
-        <MapController 
-          selectedFarmer={selectedFarmer}
-          selectedFarm={selectedFarm}
-          farmerFarms={farmerFarms}
-        />
-        
-        {/* Optional layers */}
-        <DataLayers activeLayers={activeLayers} />
-        <MeasurementControl />
-        
-        {/* Farmer marker */}
-        {renderFarmerMarker}
-        
-        {/* Farm geometries */}
-        {farmerFarms.map(farm => (
-          <StableFarmGeometry
-            key={farm.id}
-            farm={farm}
-            isSelected={selectedFarm && selectedFarm.id === farm.id}
-            onClick={handleFarmClick}
-            currentZoom={currentZoom}
+    <>
+      <div className="w-full h-full absolute inset-0" style={{ zIndex: 1 }}>
+        <LeafletMap {...memoizedMapProps}>
+          {/* Base layers */}
+          <TileLayer {...tileLayerProps} />
+          <ZoomControl position="bottomright" />
+          <MapUpdater basemap={basemap} />
+          <MapZoomProtector />
+          
+          {/* Zoom monitor */}
+          <ZoomMonitor onZoomChange={handleZoomChange} />
+          
+          {/* Map controller - encapsulated in memo to prevent unnecessary rerenders */}
+          <MapController 
+            selectedFarmer={selectedFarmer}
+            selectedFarm={selectedFarm}
+            farmerFarms={farmerFarms}
           />
-        ))}
-        
-        {/* Render children components (like FarmsLayer) */}
-        {children}
-      </LeafletMap>
-    </div>
+          
+          {/* Optional layers */}
+          <DataLayers activeLayers={activeLayers} />
+          <MeasurementControl />
+          
+          {/* Farmer marker */}
+          {renderFarmerMarker}
+          
+          {/* Farm geometries */}
+          {farmerFarms.map(farm => (
+            <StableFarmGeometry
+              key={farm.id}
+              farm={farm}
+              isSelected={selectedFarm && selectedFarm.id === farm.id}
+              onClick={handleFarmClick}
+              onAdvisoryClick={handleAdvisoryClick}
+              currentZoom={currentZoom}
+            />
+          ))}
+          
+          {/* Render children components (like FarmsLayer) */}
+          {children}
+        </LeafletMap>
+      </div>
+
+      {/* Advisory Modal - Outside the map container */}
+      <AdvisoryInputModal
+        isOpen={showAdvisoryModal}
+        onClose={handleAdvisoryModalClose}
+        farm={selectedFarmForAdvisory}
+      />
+    </>
   );
 };
 

@@ -9,7 +9,7 @@ import FarmsSummary from '../components/dashboard/FarmsSummary';
 import FarmsLayer from '../components/dashboard/FarmsLayer';
 import { getInitialActiveLayers } from '../config/mapSettings';
 import farmService from '../services/api/farms.service';
-import { getFarmers } from '../services/api/farmerQuery.service';
+import { getFarmers } from '../services/api/farmerQuery.service'; // Keep for other sections
 import communityService from '../services/api/community.service';
 
 /**
@@ -56,15 +56,22 @@ const Dashboard = () => {
     setLeftDrawerOpen(prevState => !prevState);
   }, []);
 
+  // Updated handleSelectFarmer to work with search results
   const handleSelectFarmer = useCallback((farmer) => {
+    console.log('Selected farmer from search:', farmer);
+    
     // When selecting a farmer, deactivate any farm layers
     setActiveFarmLayer(null);
     setFarmsSummaryOpen(false);
     
+    // The farmer object from search has farmer_id, display_name, phone_number
+    // We'll let RightDrawer handle fetching the complete details
     setSelectedFarmer(farmer);
     setRightDrawerOpen(true);
+    
     // Reset selected farm when selecting a new farmer
     setSelectedFarm(null);
+    setFarmerFarms([]); // Clear existing farms, RightDrawer will load new ones
   }, []);
 
   const handleCloseRightDrawer = useCallback(() => {
@@ -79,8 +86,9 @@ const Dashboard = () => {
     setSelectedFarm(farm);
   }, []);
 
-  // Update farms list when retrieved
+  // Update farms list when retrieved from RightDrawer
   const handleFarmsLoaded = useCallback((farms) => {
+    console.log('Farms loaded from RightDrawer:', farms.length);
     setFarmerFarms(farms);
   }, []);
 
@@ -143,7 +151,7 @@ const Dashboard = () => {
       return newState;
     });
     
-    // Turn off selected farmer/farm
+    // Turn off selected farmer/farm when using farm layers
     setSelectedFarmer(null);
     setSelectedFarm(null);
     setFarmerFarms([]);
@@ -331,7 +339,7 @@ const Dashboard = () => {
           communityOptions={communityOptions}
         />
 
-        {/* Right Drawer for farmer details */}
+        {/* Right Drawer for farmer details - Now optimized for search results */}
         <RightDrawer
           isOpen={rightDrawerOpen}
           onClose={handleCloseRightDrawer}
