@@ -88,7 +88,7 @@ const LeftDrawer = ({
       <FarmerSearch onSelectFarmer={onSelectFarmer} />
 
       {/* Admin Boundaries Section */}
-      <div className="p-4 border-b">
+      {/* <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <Layers className="h-5 w-5 text-kitovu-purple mr-2" />
           <h3 className="text-md font-medium">Admin Boundaries</h3>
@@ -110,13 +110,13 @@ const LeftDrawer = ({
             </div>
           ))}
         </div>
-      </div>
+      </div> */}
 
       {/* Distribution Layers Section */}
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <BarChart className="h-5 w-5 text-kitovu-purple mr-2" />
-          <h3 className="text-md font-medium">Farmer Distribution</h3>
+          <h3 className="text-md font-medium">Analytics</h3>
         </div>
         
         <div className="space-y-3">

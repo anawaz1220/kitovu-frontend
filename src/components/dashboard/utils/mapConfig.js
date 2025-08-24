@@ -9,7 +9,9 @@ export const defaultZoom = DEFAULT_MAP_ZOOM;
 export const basemapUrls = {
   streets: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   satellite: 'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&key=AIzaSyDzO4pxK2nMTz5xjpESMYZ0ZysAG1kJuxw',
-  dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+  // dark: 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+  dark: 'https://cartodb-basemaps-a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+
 };
 
 /**

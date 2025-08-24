@@ -96,8 +96,33 @@ const Dashboard = () => {
     setSelectedBasemap(basemap);
   }, []);
 
+  // FIXED: Handle layer toggle with proper state management for drawers
   const handleLayerToggle = useCallback((layerId) => {
-    // When toggling a regular layer, deactivate any farm layers
+    console.log('Toggling layer:', layerId);
+    
+    // Handle admin boundary layers - these don't have drawers
+    if (['countryBoundary', 'stateBoundary', 'lgaBoundary'].includes(layerId)) {
+      setActiveLayers(prevLayers => ({
+        ...prevLayers,
+        [layerId]: !prevLayers[layerId]
+      }));
+      return;
+    }
+    
+    // Handle distribution layers - these have drawers that close when unchecked
+    if (['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA'].includes(layerId)) {
+      const newState = !activeLayers[layerId];
+      
+      console.log(`${layerId} being turned ${newState ? 'ON' : 'OFF'}`);
+      
+      setActiveLayers(prevLayers => ({
+        ...prevLayers,
+        [layerId]: newState
+      }));
+      return;
+    }
+    
+    // For other layers, deactivate any farm layers
     setActiveFarmLayer(null);
     setFarmsSummaryOpen(false);
     
@@ -105,10 +130,12 @@ const Dashboard = () => {
       ...prevLayers,
       [layerId]: !prevLayers[layerId]
     }));
-  }, []);
+  }, [activeLayers]);
 
   // Handler for distribution layer selection (radio buttons)
   const handleDistributionLayerSelect = useCallback((layerId) => {
+    console.log('Distribution layer selected:', layerId);
+    
     // When selecting a distribution layer, deactivate any farm layers
     setActiveFarmLayer(null);
     setFarmsSummaryOpen(false);

@@ -1,6 +1,11 @@
 // src/hooks/useMapData.js
 import { useState, useEffect } from 'react';
-import { fetchFarmersCountByLocation, fetchCropsByLocation } from '../services/api/location.service';
+import { 
+  fetchFarmersCountByLocation, 
+  fetchCropsByLocation,
+  fetchAbiaStateBoundary,
+  fetchAbiaLGABoundaries
+} from '../services/api/location.service';
 import { formatGeoJsonFromResponse } from '../components/dashboard/utils/mapConfig';
 
 /**
@@ -46,9 +51,59 @@ const useMapData = (activeLayers) => {
     }
   }, [activeLayers.countryBoundary, countryData]);
 
-  // Fetch other data layers
+  // Fetch Abia state boundary
   useEffect(() => {
-    const fetchLayers = async () => {
+    const fetchAbiaStateData = async () => {
+      if (stateData) return; // Don't fetch if we already have the data
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('Fetching Abia state boundary...');
+        const data = await fetchAbiaStateBoundary();
+        setStateData(data);
+        console.log('Abia state boundary loaded successfully');
+      } catch (error) {
+        console.error('Error fetching Abia state boundary:', error);
+        setError('Failed to load Abia state boundary');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (activeLayers.stateBoundary) {
+      fetchAbiaStateData();
+    }
+  }, [activeLayers.stateBoundary, stateData]);
+
+  // Fetch Abia LGA boundaries
+  useEffect(() => {
+    const fetchAbiaLGAData = async () => {
+      if (lgaData) return; // Don't fetch if we already have the data
+      
+      try {
+        setIsLoading(true);
+        setError(null);
+        console.log('Fetching Abia LGA boundaries...');
+        const data = await fetchAbiaLGABoundaries();
+        setLgaData(data);
+        console.log('Abia LGA boundaries loaded successfully');
+      } catch (error) {
+        console.error('Error fetching Abia LGA boundaries:', error);
+        setError('Failed to load Abia LGA boundaries');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (activeLayers.lgaBoundary) {
+      fetchAbiaLGAData();
+    }
+  }, [activeLayers.lgaBoundary, lgaData]);
+
+  // Fetch other data layers (distribution layers)
+  useEffect(() => {
+    const fetchDistributionLayers = async () => {
       setIsLoading(true);
       setError(null);
       
@@ -76,45 +131,29 @@ const useMapData = (activeLayers) => {
           const data = await fetchCropsByLocation({ type: 'State' });
           setCommodityStateData(formatGeoJsonFromResponse(data));
         }
-        
-        // Fetch state boundaries
-        if (activeLayers.stateBoundary && !stateData) {
-          const data = await fetchFarmersCountByLocation({ type: 'State' });
-          setStateData(formatGeoJsonFromResponse(data));
-        }
-        
-        // Fetch LGA boundaries
-        if (activeLayers.lgaBoundary && !lgaData) {
-          const data = await fetchFarmersCountByLocation({ type: 'LGA' });
-          setLgaData(formatGeoJsonFromResponse(data));
-        }
       } catch (error) {
-        console.error('Error fetching map data:', error);
-        setError('Failed to load map data. Please try again later.');
+        console.error('Error fetching distribution layers:', error);
+        setError('Failed to load distribution data. Please try again later.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    const shouldFetchData = 
+    const shouldFetchDistributionData = 
       (activeLayers.farmersByLGA && !farmerLGAData) || 
       (activeLayers.farmersByState && !farmerStateData) ||
       (activeLayers.commodityByLGA && !commodityLGAData) ||
-      (activeLayers.commodityByState && !commodityStateData) ||
-      (activeLayers.stateBoundary && !stateData) ||
-      (activeLayers.lgaBoundary && !lgaData);
+      (activeLayers.commodityByState && !commodityStateData);
     
-    if (shouldFetchData) {
-      fetchLayers();
+    if (shouldFetchDistributionData) {
+      fetchDistributionLayers();
     }
   }, [
     activeLayers, 
     farmerLGAData, 
     farmerStateData, 
     commodityLGAData, 
-    commodityStateData, 
-    stateData, 
-    lgaData
+    commodityStateData
   ]);
 
   return {
