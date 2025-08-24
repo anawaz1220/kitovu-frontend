@@ -49,7 +49,7 @@ export const farmersStyle = (feature) => {
       fillColor: 'transparent',
       weight: 1,
       opacity: 1,
-      color: '#27ae60', // Green color
+      color: '#2563eb', // Blue color (changed from green)
       fillOpacity: 0
     };
   };

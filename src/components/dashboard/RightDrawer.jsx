@@ -1,12 +1,15 @@
 // src/components/dashboard/RightDrawer.jsx
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+
 import { X, User, Phone, MapPin, Calendar, CreditCard, User2, Tractor, Loader2, Users, RefreshCw } from 'lucide-react';
 import defaultUserImage from '../../assets/images/default-user.svg';
 import { getFarmerById, getFarmsByFarmerId } from '../../services/api/farmerQuery.service';
+import SmartImageLoader from '../common/SmartImageLoader';
+
 
 // Base URL for images - use your development server URL
-const IMAGE_BASE_URL = 'http://localhost:3000';
-
+const IMAGE_BASE_URL = import.meta.env.VITE_API_URL||'http://localhost:3000';
+console.log('Using IMAGE_BASE_URL:', IMAGE_BASE_URL);
 // Simple date formatter function (to avoid date-fns dependency)
 const formatDate = (dateString) => {
   if (!dateString) return 'Not specified';
@@ -61,6 +64,7 @@ const getImageUrl = (imagePath) => {
   
   // Return the full URL
   return `${IMAGE_BASE_URL}${cleanPath}`;
+  console.log('Constructed image URL:', `${IMAGE_BASE_URL}${cleanPath}`);
 };
 
 const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoaded }) => {
@@ -74,6 +78,9 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
   const fetchedFarmerIdRef = useRef(null);
   const [farmerImageError, setFarmerImageError] = useState(false);
   const [idDocumentImageError, setIdDocumentImageError] = useState(false);
+
+  const [classifiedImages, setClassifiedImages] = useState(null);
+  const [showSmartLoader, setShowSmartLoader] = useState(false);
   
   // Fetch farmer details when selectedFarmer changes
   useEffect(() => {
@@ -153,6 +160,22 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
     fetchFarms();
   }, [farmerDetails?.farmer_id, onFarmsLoaded]);
 
+  // Trigger smart image loading when farmer details are available
+useEffect(() => {
+  if (farmerDetails && farmerDetails.farmer_picture && farmerDetails.id_document_picture) {
+    const profileUrl = getImageUrl(farmerDetails.farmer_picture);
+    const documentUrl = getImageUrl(farmerDetails.id_document_picture);
+    
+    // Only show smart loader if both images are available
+    if (profileUrl && documentUrl) {
+      setShowSmartLoader(true);
+      setClassifiedImages(null);
+    }
+  } else {
+    setShowSmartLoader(false);
+  }
+}, [farmerDetails]);
+
   // Handle refresh of farmer data
   const handleRefreshFarmer = async () => {
     if (!selectedFarmer?.farmer_id) return;
@@ -167,6 +190,12 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
     delete farmer.first_name; // Remove cached data to force API call
     // This will trigger the useEffect to fetch fresh data
   };
+
+  const handleImagesClassified = useCallback((result) => {
+    console.log('Images classified:', result);
+    setClassifiedImages(result);
+    setShowSmartLoader(false);
+  }, []);
 
   // Don't render anything if drawer is not open or no farmer is selected
   if (!isOpen || !selectedFarmer) {
@@ -263,15 +292,18 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
     setIdDocumentImageError(true);
   };
   
-  // For the profile picture, use the farmer picture field
-  const farmerImageSrc = !farmerImageError && farmerDetails.farmer_picture 
-    ? getImageUrl(farmerDetails.farmer_picture) 
-    : defaultUserImage;
-    
-  // For the ID document, use the ID document picture field
-  const idDocumentImageSrc = !idDocumentImageError && farmerDetails.id_document_picture 
-    ? getImageUrl(farmerDetails.id_document_picture) 
-    : defaultUserImage;
+  // Use classified images if available, otherwise use original logic
+  const farmerImageSrc = classifiedImages 
+    ? classifiedImages.profileImage
+    : (!farmerImageError && farmerDetails.farmer_picture 
+        ? getImageUrl(farmerDetails.farmer_picture) 
+        : defaultUserImage);
+        
+  const idDocumentImageSrc = classifiedImages 
+    ? classifiedImages.documentImage
+    : (!idDocumentImageError && farmerDetails.id_document_picture 
+        ? getImageUrl(farmerDetails.id_document_picture) 
+        : defaultUserImage);
 
   return (
     <div 
@@ -301,26 +333,56 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
 
       {/* Farmer Details */}
       <div className="p-4">
-        {/* Profile Image and Name */}
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-2 border-kitovu-purple">
-            <img 
-              src={farmerImageSrc}
-              alt={`${farmerDetails.first_name} ${farmerDetails.last_name}`}
-              className="w-full h-full object-cover"
-              onError={handleFarmerImageError}
-            />
-          </div>
-          <h3 className="text-xl font-bold text-center text-gray-800">
-            {farmerDetails.first_name} {farmerDetails.last_name}
-          </h3>
-          <span className="text-sm text-gray-500 mt-1">
-            Farmer ID: {farmerDetails.farmer_id}
-          </span>
-        </div>
+        
 
         {/* Details List */}
         <div className="space-y-4">
+
+        {/* Smart Image Loader or Regular Images */}
+            {showSmartLoader ? (
+              <SmartImageLoader
+                profileImageUrl={getImageUrl(farmerDetails.farmer_picture)}
+                documentImageUrl={getImageUrl(farmerDetails.id_document_picture)}
+                farmerName={`${farmerDetails.first_name} ${farmerDetails.last_name}`}
+                onImagesClassified={handleImagesClassified}
+              />
+            ) : (
+              <>
+                {/* Profile Image and Name */}
+                <div className="flex flex-col items-center mb-6">
+                  <div className="w-24 h-24 rounded-full overflow-hidden mb-3 border-2 border-kitovu-purple">
+                    <img 
+                      src={farmerImageSrc}
+                      alt={`${farmerDetails.first_name} ${farmerDetails.last_name}`}
+                      className="w-full h-full object-cover"
+                      onError={handleFarmerImageError}
+                    />
+                  </div>
+                  <h3 className="text-xl font-bold text-center text-gray-800">
+                    {farmerDetails.first_name} {farmerDetails.last_name}
+                  </h3>
+                  <span className="text-sm text-gray-500 mt-1">
+                    Farmer ID: {farmerDetails.farmer_id}
+                  </span>
+                </div>
+                
+                {/* Show classification info if available */}
+                {/* {classifiedImages && classifiedImages.isSwapped && (
+                  <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-start">
+                      <svg className="h-4 w-4 text-green-600 mt-0.5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                      </svg>
+                      <div>
+                        <p className="text-xs font-medium text-green-800">AI Auto-Correction</p>
+                        <p className="text-xs text-green-600 mt-1">Images were automatically reordered for correct display</p>
+                      </div>
+                    </div>
+                  </div>
+                )} */}
+              </>
+            )}
+
           {/* Gender */}
           <div className="flex items-start">
             <User className="h-5 w-5 text-kitovu-purple mr-3 mt-0.5" />
@@ -359,6 +421,8 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
               <p className="text-gray-800">{getFullAddress()}</p>
             </div>
           </div>
+          
+          
 
           {/* ID Information */}
           <div className="flex items-start">
@@ -373,18 +437,22 @@ const RightDrawer = ({ isOpen, onClose, selectedFarmer, onFarmSelect, onFarmsLoa
             </div>
           </div>
 
-          {/* ID Document Picture */}
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-500 mb-2">ID Document</p>
-            <div className="border rounded-md overflow-hidden">
-              <img 
-                src={idDocumentImageSrc}
-                alt="ID Document" 
-                className="w-full h-auto"
-                onError={handleIdDocumentImageError}
-              />
-            </div>
-          </div>
+          {/* ID Document Picture - only show if not using smart loader */}
+            {!showSmartLoader && (
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-500 mb-2">ID Document</p>
+                <div className="border rounded-md overflow-hidden">
+                  <img 
+                    src={idDocumentImageSrc}
+                    alt="ID Document" 
+                    className="w-full h-auto"
+                    onError={handleIdDocumentImageError}
+                  />
+                </div>
+              </div>
+            )}
+
+          
 
           {/* Created By */}
           <div className="flex items-start mt-4 pt-4 border-t">

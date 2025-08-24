@@ -36,14 +36,13 @@ const DataLayers = ({ activeLayers }) => {
   const stateLayerRef = useRef(null);
   const lgaLayerRef = useRef(null);
   
-  // Track whether bounds have been fitted for each layer
-  const [boundsFitted, setBoundsFitted] = useState({
-    country: false,
-    state: false,
-    lga: false
-  });
+  // Track which layers have been auto-fitted
+  const [autoFittedLayers, setAutoFittedLayers] = useState(new Set());
   
-  // Track if user has interacted with map
+  // Track previous layer states to detect when layers are toggled ON
+  const [prevActiveLayers, setPrevActiveLayers] = useState({});
+  
+  // Track if user has manually interacted with map
   const [userInteracted, setUserInteracted] = useState(false);
   
   const map = useMap();
@@ -65,47 +64,73 @@ const DataLayers = ({ activeLayers }) => {
     };
   }, [map]);
 
-  // Handle layer visibility and bounds fitting
+  // Auto-fit to boundaries when layers are toggled ON
   useEffect(() => {
-    // Only fit bounds if:
-    // 1. The layer is active
-    // 2. We have data for that layer
-    // 3. The bounds haven't been fitted yet
-    // 4. The user hasn't interacted with the map
-    
-    if (activeLayers.countryBoundary && countryData && countryLayerRef.current && !boundsFitted.country && !userInteracted) {
-      safelyFitBounds(map, countryLayerRef);
-      setBoundsFitted(prev => ({ ...prev, country: true }));
-    }
-    
-    if (activeLayers.stateBoundary && stateData && stateLayerRef.current && !boundsFitted.state && !userInteracted) {
-      safelyFitBounds(map, stateLayerRef);
-      setBoundsFitted(prev => ({ ...prev, state: true }));
-    }
-    
-    if (activeLayers.lgaBoundary && lgaData && lgaLayerRef.current && !boundsFitted.lga && !userInteracted) {
-      safelyFitBounds(map, lgaLayerRef);
-      setBoundsFitted(prev => ({ ...prev, lga: true }));
-    }
-  }, [activeLayers, countryData, stateData, lgaData, map, boundsFitted, userInteracted]);
+    // Check for newly activated boundary layers
+    const checkAndFitLayer = (layerId, data, layerRef) => {
+      const wasActive = prevActiveLayers[layerId];
+      const isNowActive = activeLayers[layerId];
+      
+      // Only fit if:
+      // 1. Layer was just turned ON (false -> true or undefined -> true)
+      // 2. We have data for the layer
+      // 3. Layer reference exists
+      // 4. We haven't auto-fitted this layer before
+      if (!wasActive && isNowActive && data && layerRef.current && !autoFittedLayers.has(layerId)) {
+        console.log(`Auto-fitting to ${layerId}`);
+        
+        // Add a small delay to ensure the layer is rendered
+        setTimeout(() => {
+          try {
+            const bounds = layerRef.current.getBounds();
+            if (bounds && bounds.isValid()) {
+              map.flyToBounds(bounds, {
+                padding: [50, 50],
+                animate: true,
+                duration: 1.5
+              });
+              
+              // Mark this layer as auto-fitted
+              setAutoFittedLayers(prev => new Set([...prev, layerId]));
+            }
+          } catch (error) {
+            console.error(`Error fitting to ${layerId}:`, error);
+          }
+        }, 300);
+      }
+    };
+
+    // Check each boundary layer
+    checkAndFitLayer('countryBoundary', countryData, countryLayerRef);
+    checkAndFitLayer('stateBoundary', stateData, stateLayerRef);
+    checkAndFitLayer('lgaBoundary', lgaData, lgaLayerRef);
+
+    // Update previous layer states
+    setPrevActiveLayers(activeLayers);
+  }, [activeLayers, countryData, stateData, lgaData, map, autoFittedLayers]);
   
-  // Reset fitted status when layers are turned off
+  // Reset auto-fitted status when layers are turned off
   useEffect(() => {
-    if (!activeLayers.countryBoundary) {
-      setBoundsFitted(prev => ({ ...prev, country: false }));
+    const newAutoFitted = new Set(autoFittedLayers);
+    
+    if (!activeLayers.countryBoundary && autoFittedLayers.has('countryBoundary')) {
+      newAutoFitted.delete('countryBoundary');
     }
-    if (!activeLayers.stateBoundary) {
-      setBoundsFitted(prev => ({ ...prev, state: false }));
+    if (!activeLayers.stateBoundary && autoFittedLayers.has('stateBoundary')) {
+      newAutoFitted.delete('stateBoundary');
     }
-    if (!activeLayers.lgaBoundary) {
-      setBoundsFitted(prev => ({ ...prev, lga: false }));
+    if (!activeLayers.lgaBoundary && autoFittedLayers.has('lgaBoundary')) {
+      newAutoFitted.delete('lgaBoundary');
     }
-  }, [activeLayers]);
+    
+    if (newAutoFitted.size !== autoFittedLayers.size) {
+      setAutoFittedLayers(newAutoFitted);
+    }
+  }, [activeLayers, autoFittedLayers]);
 
   // Show loading or error state if needed
   if (error) {
     console.error('Error loading map data:', error);
-    // Could show an error overlay or message on the map if needed
   }
 
   return (
@@ -128,9 +153,7 @@ const DataLayers = ({ activeLayers }) => {
           data={stateData} 
           style={stateStyle}
           onEachFeature={onEachStateFeature}
-          ref={(el) => {
-            stateLayerRef.current = el;
-          }}
+          ref={stateLayerRef}
         />
       )}
       
@@ -141,9 +164,7 @@ const DataLayers = ({ activeLayers }) => {
           data={lgaData} 
           style={lgaStyle}
           onEachFeature={onEachLGAFeature}
-          ref={(el) => {
-            lgaLayerRef.current = el;
-          }}
+          ref={lgaLayerRef}
         />
       )}
       
@@ -156,7 +177,7 @@ const DataLayers = ({ activeLayers }) => {
         commodityLGAData={commodityLGAData}
       />
 
-      {/* Loading indicator could be added here */}
+      {/* Loading indicator */}
       {isLoading && (
         <div 
           className="absolute bottom-4 right-4 bg-white px-3 py-2 rounded shadow z-1000 text-sm"

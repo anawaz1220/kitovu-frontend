@@ -44,42 +44,42 @@ export const getFarmMarkerSize = (currentZoom) => {
 };
 
 /**
- * Get farm style based on farm type
+ * Get farm style based on farm type - Updated for hollow polygons
  * @param {Object} farm - Farm object
  * @returns {Object} - Leaflet style object
  */
 export const getFarmStyle = (farm) => {
-  // Colors for different farm types
+  // Colors for different farm types - hollow polygons with colored borders
   const farmTypeColors = {
     crop_farming: {
       color: '#4ade80', // Green border for crops
-      fillColor: '#4ade80',
+      fillColor: 'transparent', // No fill
       weight: 2,
       opacity: 1,
-      fillOpacity: 0.5
+      fillOpacity: 0 // Completely transparent fill
     },
     livestock_farming: {
       color: '#f97316', // Orange border for livestock
-      fillColor: '#f97316',
+      fillColor: 'transparent', // No fill
       weight: 2,
       opacity: 1,
-      fillOpacity: 0.5
+      fillOpacity: 0 // Completely transparent fill
     },
     mixed_farming: {
       color: '#8b5cf6', // Purple border for mixed
-      fillColor: '#8b5cf6',
+      fillColor: 'transparent', // No fill
       weight: 2,
       opacity: 1,
-      fillOpacity: 0.5
+      fillOpacity: 0 // Completely transparent fill
     }
   };
   
   // Get style based on farm type or use default
   return farmTypeColors[farm.farm_type] || {
     color: '#3b82f6', // Blue default
-    fillColor: '#3b82f6',
+    fillColor: 'transparent', // No fill
     weight: 2,
     opacity: 1,
-    fillOpacity: 0.5
+    fillOpacity: 0 // Completely transparent fill
   };
 };

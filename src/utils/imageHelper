@@ -1,0 +1,26 @@
+// src/utils/imageHelper.js
+const IMAGE_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+
+export const normalizeImageUrl = (url) => {
+  if (!url) return null;
+
+  // Already a full URL? Normalize only
+  let cleanUrl = url;
+
+  // Strip /api for image paths
+  cleanUrl = cleanUrl.replace("/api/uploads", "/uploads");
+
+  // Live backend serves from /images, not /uploads
+  if (cleanUrl.includes("trakos-backend.onrender.com/uploads")) {
+    cleanUrl = cleanUrl.replace("/uploads", "/images");
+  }
+
+  // Make sure full URL
+  if (!cleanUrl.startsWith("http")) {
+    const cleanPath = cleanUrl.startsWith("/") ? cleanUrl : `/${cleanUrl}`;
+    cleanUrl = `${IMAGE_BASE_URL}${cleanPath}`;
+  }
+
+  return cleanUrl;
+};
+    

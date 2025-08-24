@@ -14,28 +14,28 @@ export const BASEMAP_OPTIONS = [
   export const LAYER_OPTIONS = [
     { 
       id: 'farmersByState', 
-      name: 'Farmers by State', 
+      name: 'Analystics by State', 
       description: 'Shows density of farmers across states',
       category: 'distribution'
     },
     { 
       id: 'farmersByLGA', 
-      name: 'Farmers by LGA', 
-      description: 'Shows the distribution of farmers by LGA',
+      name: 'Analytics by LGA', 
+      description: 'Shows the distribution of Farmers Farms and Commodities by LGA',
       category: 'distribution'
     },
-    { 
-      id: 'commodityByState', 
-      name: 'Commodity by State', 
-      description: 'Displays crop types and areas by state',
-      category: 'distribution'
-    },
-    { 
-      id: 'commodityByLGA', 
-      name: 'Commodity by LGA', 
-      description: 'Displays crop types and areas by LGA',
-      category: 'distribution'
-    },
+    // { 
+    //   id: 'commodityByState', 
+    //   name: 'Commodity by State', 
+    //   description: 'Displays crop types and areas by state',
+    //   category: 'distribution'
+    // },
+    // { 
+    //   id: 'commodityByLGA', 
+    //   name: 'Commodity by LGA', 
+    //   description: 'Displays crop types and areas by LGA',
+    //   category: 'distribution'
+    // },
     { 
       id: 'countryBoundary', 
       name: 'Country Boundary', 
@@ -57,9 +57,9 @@ export const BASEMAP_OPTIONS = [
     }
   ];
   
-  // Default map center for Nigeria
-  export const DEFAULT_MAP_CENTER = [9.0820, 8.6753];
-  export const DEFAULT_MAP_ZOOM = 6;
+  // Default map center for Abia State, Nigeria
+  export const DEFAULT_MAP_CENTER = [5.43435404875959, 7.501115245033158];
+  export const DEFAULT_MAP_ZOOM = 9; // Appropriate zoom level for state view
   
   // Get initial active layers based on default settings
   export const getInitialActiveLayers = () => {
