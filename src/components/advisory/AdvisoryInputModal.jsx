@@ -63,7 +63,9 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!farm?.id) {
+    // FIXED: Check for both id and farm_id
+    const farmId = farm?.id || farm?.farm_id;
+    if (!farmId) {
       alert('Farm information is missing. Please try again.');
       return;
     }
@@ -79,12 +81,15 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
         }
       });
 
-      console.log('Submitting advisory request for farm:', farm.id, 'with params:', herbicideParams);
+      console.log('Submitting advisory request for farm:', farmId, 'with params:', herbicideParams);
       
       // Navigate to advisory report page with farm and params data
       navigate('/advisory-report', {
         state: {
-          farm: farm,
+          farm: {
+            ...farm,
+            id: farmId  // Ensure we always have an id field for the advisory report
+          },
           herbicideParams: herbicideParams,
           timestamp: new Date().toISOString()
         }
@@ -123,7 +128,7 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
             </button>
           </div>
           <p className="text-sm mt-1 opacity-90">
-            Farm #{farm?.farm_id} - {farm?.crop_type || farm?.livestock_type || 'Mixed farming'}
+            Farm #{farm?.farm_id || farm?.id} - {farm?.crop_type || farm?.livestock_type || 'Mixed farming'}
           </p>
         </div>
 
@@ -168,6 +173,9 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Current development stage of the crop.
+              </p>
             </div>
 
             {/* Timing Preference */}
@@ -189,13 +197,16 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Preferred timing for chemical application.
+              </p>
             </div>
 
             {/* Weed Pressure */}
             <div>
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <Leaf className="h-4 w-4 mr-2 text-kitovu-purple" />
-                Expected Weed Pressure
+                Weed Pressure Level
               </label>
               <select
                 name="weed_pressure"
@@ -203,7 +214,6 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-kitovu-purple focus:border-transparent"
                 disabled={isSubmitting}
-                required
               >
                 {pressureOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -211,13 +221,16 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Current weed infestation level in the field.
+              </p>
             </div>
 
             {/* Pest Pressure */}
             <div>
               <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
                 <Bug className="h-4 w-4 mr-2 text-kitovu-purple" />
-                Expected Pest Pressure
+                Pest Pressure Level
               </label>
               <select
                 name="pest_pressure"
@@ -225,7 +238,6 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                 onChange={handleInputChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-kitovu-purple focus:border-transparent"
                 disabled={isSubmitting}
-                required
               >
                 {pressureOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -233,23 +245,18 @@ const AdvisoryInputModal = ({ isOpen, onClose, farm }) => {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Current pest infestation level in the field.
+              </p>
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              disabled={isSubmitting}
-            >
-              Cancel
-            </button>
+          {/* Submit Button */}
+          <div className="mt-6 pt-4 border-t border-gray-200">
             <button
               type="submit"
-              className="px-6 py-2 bg-kitovu-purple text-white rounded-md hover:bg-purple-700 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={isSubmitting}
+              className="w-full bg-kitovu-purple hover:bg-purple-700 text-white py-3 px-4 rounded-md font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
             >
               {isSubmitting ? (
                 <>

@@ -1,5 +1,6 @@
 // src/utils/imageHelper.js
-const IMAGE_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+// const IMAGE_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const IMAGE_BASE_URL = "http://localhost:3000";
 
 export const normalizeImageUrl = (url) => {
   if (!url) return null;

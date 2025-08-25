@@ -11,7 +11,13 @@ import AbiaLGASummaryDrawer from './AbiaLGASummaryDrawer';
  * @param {Object} props - Component props
  * @param {boolean} props.visible - Whether the layer should be visible
  */
-const AbiaLGASummaryLayer = ({ visible }) => {
+const AbiaLGASummaryLayer = ({ 
+  visible,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap
+}) => {
   const map = useMap();
   const [summaryData, setSummaryData] = useState(null);
   const [allLGABoundaries, setAllLGABoundaries] = useState(null);
@@ -20,6 +26,16 @@ const AbiaLGASummaryLayer = ({ visible }) => {
   const [error, setError] = useState(null);
   const [selectedLGA, setSelectedLGA] = useState(null);
   const [selectedLGAIndex, setSelectedLGAIndex] = useState(null);
+
+  // Create analytics pane with lower z-index
+  useEffect(() => {
+    if (!map) return;
+    
+    if (!map.getPane('analyticsPane')) {
+      const analyticsPane = map.createPane('analyticsPane');
+      analyticsPane.style.zIndex = 400; // Lower than farms
+    }
+  }, [map]);
   
   // Keep track of layer references for popup management
   const layerRefsMap = useRef(new Map());
@@ -325,6 +341,11 @@ const AbiaLGASummaryLayer = ({ visible }) => {
           data={combinedGeoJsonData}
           style={getFeatureStyle}
           onEachFeature={onEachFeature}
+          interactive={(() => {
+            console.log('LGA Layer - showFarmsOnMap:', showFarmsOnMap, 'interactive:', !showFarmsOnMap);
+            return !showFarmsOnMap;
+          })()}
+          pane="analyticsPane"
         />
       )}
 
@@ -337,6 +358,10 @@ const AbiaLGASummaryLayer = ({ visible }) => {
         error={error}
         onLGAClick={handleLGATableClick}
         selectedLGA={selectedLGA}
+        showFarmersOnMap={showFarmersOnMap}
+        showFarmsOnMap={showFarmsOnMap}
+        onToggleFarmersOnMap={onToggleFarmersOnMap}
+        onToggleFarmsOnMap={onToggleFarmsOnMap}
       />
     </>
   );

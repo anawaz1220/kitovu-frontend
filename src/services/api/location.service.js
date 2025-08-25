@@ -120,3 +120,45 @@ export const fetchCropsByLocation = async (params) => {
     throw error;
   }
 };
+
+/**
+ * Fetch farmers locations for clustering
+ * @returns {Promise<Object>} - Farmers location data with coordinates
+ */
+export const fetchFarmersLocations = async () => {
+  try {
+    console.log('Fetching farmers locations...');
+    const { data } = await api.get('/locations/abia-state/farmers-locations');
+    
+    console.log('Farmers locations data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching farmers locations:', error);
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
+    throw error;
+  }
+};
+
+/**
+ * Fetch farms locations for clustering
+ * @returns {Promise<Object>} - Farms location data with coordinates and geometry
+ */
+export const fetchFarmsLocations = async () => {
+  try {
+    console.log('Fetching farms locations...');
+    const { data } = await api.get('/locations/abia-state/farms-locations');
+    
+    console.log('Farms locations data:', data);
+    return data;
+  } catch (error) {
+    console.error('Error fetching farms locations:', error);
+    if (error.response) {
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+    }
+    throw error;
+  }
+};

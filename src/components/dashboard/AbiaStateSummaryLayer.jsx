@@ -10,13 +10,29 @@ import AbiaStateSummaryDrawer from './AbiaStateSummaryDrawer';
  * @param {Object} props - Component props
  * @param {boolean} props.visible - Whether the layer should be visible
  */
-const AbiaStateSummaryLayer = ({ visible }) => {
+const AbiaStateSummaryLayer = ({ 
+  visible,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap
+}) => {
   const map = useMap();
   const [summaryData, setSummaryData] = useState(null);
   const [geoJsonData, setGeoJsonData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [hasFittedBounds, setHasFittedBounds] = useState(false);
+
+  // Create analytics pane with lower z-index
+  useEffect(() => {
+    if (!map) return;
+    
+    if (!map.getPane('analyticsPane')) {
+      const analyticsPane = map.createPane('analyticsPane');
+      analyticsPane.style.zIndex = 400; // Lower than farms
+    }
+  }, [map]);
 
   // Fetch data and show drawer when layer becomes visible
   useEffect(() => {
@@ -97,6 +113,8 @@ const AbiaStateSummaryLayer = ({ visible }) => {
           key="abia-state-summary"
           data={geoJsonData}
           style={() => layerStyle}
+          interactive={false}
+          pane="analyticsPane"
         />
       )}
 
@@ -107,6 +125,10 @@ const AbiaStateSummaryLayer = ({ visible }) => {
         summaryData={summaryData}
         isLoading={isLoading}
         error={error}
+        showFarmersOnMap={showFarmersOnMap}
+        showFarmsOnMap={showFarmsOnMap}
+        onToggleFarmersOnMap={onToggleFarmersOnMap}
+        onToggleFarmsOnMap={onToggleFarmsOnMap}
       />
     </>
   );

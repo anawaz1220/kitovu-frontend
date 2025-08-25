@@ -7,9 +7,12 @@ import MapContainer from '../components/dashboard/MapContainer';
 import RightDrawer from '../components/dashboard/RightDrawer';
 import FarmsSummary from '../components/dashboard/FarmsSummary';
 import FarmsLayer from '../components/dashboard/FarmsLayer';
+import ClusteredPointsLayer from '../components/dashboard/ClusteredPointsLayer';
+import FarmDetailsDrawer from '../components/dashboard/FarmDetailsDrawer';
+import AdvisoryInputModal from '../components/advisory/AdvisoryInputModal'; // ADDED: Import advisory modal
 import { getInitialActiveLayers } from '../config/mapSettings';
 import farmService from '../services/api/farms.service';
-import { getFarmers } from '../services/api/farmerQuery.service'; // Keep for other sections
+import { getFarmers } from '../services/api/farmerQuery.service';
 import communityService from '../services/api/community.service';
 
 /**
@@ -21,10 +24,15 @@ const Dashboard = () => {
   const [leftDrawerOpen, setLeftDrawerOpen] = useState(true);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [farmsSummaryOpen, setFarmsSummaryOpen] = useState(false);
-  const [selectedBasemap, setSelectedBasemap] = useState('streets'); // Default basemap
+  const [farmDetailsOpen, setFarmDetailsOpen] = useState(false);
+  const [selectedBasemap, setSelectedBasemap] = useState('streets');
   const [selectedFarmer, setSelectedFarmer] = useState(null);
   const [selectedFarm, setSelectedFarm] = useState(null);
   const [farmerFarms, setFarmerFarms] = useState([]);
+  
+  // ADDED: Advisory modal state management
+  const [showAdvisoryModal, setShowAdvisoryModal] = useState(false);
+  const [selectedFarmForAdvisory, setSelectedFarmForAdvisory] = useState(null);
   
   // Farm layers state
   const [activeFarmLayer, setActiveFarmLayer] = useState(null);
@@ -51,6 +59,10 @@ const Dashboard = () => {
   // Track if options have been loaded
   const [optionsLoaded, setOptionsLoaded] = useState(false);
 
+  // Clustered points state
+  const [showFarmersOnMap, setShowFarmersOnMap] = useState(false);
+  const [showFarmsOnMap, setShowFarmsOnMap] = useState(false);
+
   // Use useCallback for event handlers to prevent unnecessary rerenders
   const toggleLeftDrawer = useCallback(() => {
     setLeftDrawerOpen(prevState => !prevState);
@@ -71,41 +83,129 @@ const Dashboard = () => {
     
     // Reset selected farm when selecting a new farmer
     setSelectedFarm(null);
-    setFarmerFarms([]); // Clear existing farms, RightDrawer will load new ones
+    setFarmerFarms([]);
+    setFarmDetailsOpen(false); // ADDED: Close farm details when selecting new farmer
   }, []);
 
+  // Handle farm selection with individual API call
+  const handleFarmSelect = useCallback(async (farm) => {
+    console.log('handleFarmSelect called with farm:', farm);
+    console.log('Farm ID from farm object:', farm.farm_id || farm.id);
+    
+    try {
+      // Use farm_id if available, otherwise fall back to id
+      const farmId = farm.farm_id || farm.id;
+      
+      if (!farmId) {
+        console.error('No farm ID available for farm:', farm);
+        // Still try to show what we have
+        setSelectedFarm(farm);
+        setFarmDetailsOpen(true);
+        return;
+      }
+      
+      // Show loading state immediately
+      setSelectedFarm({ ...farm, isLoading: true });
+      setFarmDetailsOpen(true);
+      
+      // Fetch fresh farm data from individual API
+      console.log(`Making API call to: http://localhost:3000/api/farms?farm_id=${farmId}`);
+      
+      const freshFarmData = await farmService.getFarmById(farmId);
+      console.log('API call successful! Fresh farm data received:', freshFarmData);
+      
+      // Set the selected farm with fresh data
+      setSelectedFarm({
+        ...freshFarmData,
+        // Ensure it has required fields
+        id: freshFarmData.id || farmId,
+        farm_id: freshFarmData.farm_id || farmId,
+        isLoading: false
+      });
+      
+    } catch (error) {
+      console.error('Error fetching farm details:', error);
+      console.error('Error details:', error.message, error.stack);
+      
+      // Fall back to using the provided farm object
+      setSelectedFarm({ ...farm, isLoading: false, hasError: true });
+    }
+  }, []);
+
+  // Handle closing farm details drawer
+  const handleCloseFarmDetails = useCallback(() => {
+    setFarmDetailsOpen(false);
+    setSelectedFarm(null);
+  }, []);
+
+  // Handle closing right drawer
   const handleCloseRightDrawer = useCallback(() => {
     setRightDrawerOpen(false);
     setSelectedFarmer(null);
-    setSelectedFarm(null);
-    setFarmerFarms([]);
   }, []);
 
-  // Handle farm selection
-  const handleFarmSelect = useCallback((farm) => {
-    setSelectedFarm(farm);
-  }, []);
-
-  // Update farms list when retrieved from RightDrawer
+  // Handle farms loaded from farmer selection
   const handleFarmsLoaded = useCallback((farms) => {
-    console.log('Farms loaded from RightDrawer:', farms.length);
+    console.log('Farms loaded for farmer:', farms.length);
     setFarmerFarms(farms);
   }, []);
 
+  // FIXED: Handle advisory click - now properly manages modal state
+  const handleAdvisoryClick = useCallback((farm) => {
+    console.log('Advisory clicked for farm:', farm);
+    setSelectedFarmForAdvisory(farm);
+    setShowAdvisoryModal(true);
+  }, []);
+
+  // ADDED: Handle advisory modal close
+  const handleAdvisoryModalClose = useCallback(() => {
+    setShowAdvisoryModal(false);
+    setSelectedFarmForAdvisory(null);
+  }, []);
+
+  // Handle basemap change
   const handleBasemapChange = useCallback((basemap) => {
     setSelectedBasemap(basemap);
   }, []);
 
-  // FIXED: Handle layer toggle with proper state management for drawers
+  // FIXED: Handle layer toggle with proper state management for drawers and exclusivity
   const handleLayerToggle = useCallback((layerId) => {
     console.log('Toggling layer:', layerId);
     
-    // Handle admin boundary layers - these don't have drawers
+    // Handle admin boundary layers
     if (['countryBoundary', 'stateBoundary', 'lgaBoundary'].includes(layerId)) {
-      setActiveLayers(prevLayers => ({
-        ...prevLayers,
-        [layerId]: !prevLayers[layerId]
-      }));
+      const newState = !activeLayers[layerId];
+      
+      // If turning ON this layer, turn OFF all other layers
+      if (newState) {
+        // Turn off all distribution layers
+        setActiveLayers(prevLayers => {
+          const updatedLayers = { ...prevLayers };
+          ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA', 
+           'countryBoundary', 'stateBoundary', 'lgaBoundary'].forEach(id => {
+            updatedLayers[id] = false;
+          });
+          updatedLayers[layerId] = true;
+          return updatedLayers;
+        });
+        
+        // Turn off farm layers
+        setActiveFarmLayer(null);
+        setFarmsSummaryOpen(false);
+        
+        // Turn off farmer/farm selection
+        setSelectedFarmer(null);
+        setSelectedFarm(null);
+        setFarmerFarms([]);
+        setRightDrawerOpen(false);
+        setFarmDetailsOpen(false); // ADDED: Close farm details
+      } else {
+        // Just toggle off this layer
+        setActiveLayers(prevLayers => ({
+          ...prevLayers,
+          [layerId]: false
+        }));
+      }
       return;
     }
     
@@ -115,49 +215,51 @@ const Dashboard = () => {
       
       console.log(`${layerId} being turned ${newState ? 'ON' : 'OFF'}`);
       
-      setActiveLayers(prevLayers => ({
-        ...prevLayers,
-        [layerId]: newState
-      }));
+      // If turning ON this layer, turn OFF all other layers
+      if (newState) {
+        setActiveLayers(prevLayers => {
+          const updatedLayers = { ...prevLayers };
+          ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA',
+           'countryBoundary', 'stateBoundary', 'lgaBoundary'].forEach(id => {
+            updatedLayers[id] = false;
+          });
+          updatedLayers[layerId] = true;
+          return updatedLayers;
+        });
+        
+        // Turn off farm layers when distribution layers are enabled
+        setActiveFarmLayer(null);
+        setFarmsSummaryOpen(false);
+        
+        // Turn off farmer/farm selection when distribution layers are enabled
+        setSelectedFarmer(null);
+        setSelectedFarm(null);
+        setFarmerFarms([]);
+        setRightDrawerOpen(false);
+        setFarmDetailsOpen(false); // ADDED: Close farm details
+      } else {
+        // Just toggle off this layer
+        setActiveLayers(prevLayers => ({
+          ...prevLayers,
+          [layerId]: false
+        }));
+      }
       return;
     }
     
-    // For other layers, deactivate any farm layers
-    setActiveFarmLayer(null);
-    setFarmsSummaryOpen(false);
-    
+    // For all other layers, simple toggle
     setActiveLayers(prevLayers => ({
       ...prevLayers,
       [layerId]: !prevLayers[layerId]
     }));
   }, [activeLayers]);
 
-  // Handler for distribution layer selection (radio buttons)
+  // Handle distribution layer selection (for LGA summary specifically)
   const handleDistributionLayerSelect = useCallback((layerId) => {
     console.log('Distribution layer selected:', layerId);
-    
-    // When selecting a distribution layer, deactivate any farm layers
-    setActiveFarmLayer(null);
-    setFarmsSummaryOpen(false);
-    
-    setActiveLayers(prevLayers => {
-      // Create a new state object with a copy of the previous state
-      const newState = { ...prevLayers };
-      
-      // Turn off all distribution layers
-      ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA'].forEach(id => {
-        newState[id] = false;
-      });
-      
-      // If layerId is not null, turn on the selected layer
-      if (layerId !== null) {
-        newState[layerId] = true;
-      }
-      
-      return newState;
-    });
-  }, []);
-  
+    handleLayerToggle(layerId);
+  }, [handleLayerToggle]);
+
   // Handle farm layer selection
   const handleFarmLayerSelect = useCallback((layerId) => {
     console.log('Farm layer selected:', layerId);
@@ -169,10 +271,11 @@ const Dashboard = () => {
       return;
     }
     
-    // Turn off any distribution layers
+    // Turn off any distribution layers and admin boundaries
     setActiveLayers(prevLayers => {
       const newState = { ...prevLayers };
-      ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA'].forEach(id => {
+      ['farmersByState', 'farmersByLGA', 'commodityByState', 'commodityByLGA',
+       'countryBoundary', 'stateBoundary', 'lgaBoundary'].forEach(id => {
         newState[id] = false;
       });
       return newState;
@@ -183,6 +286,7 @@ const Dashboard = () => {
     setSelectedFarm(null);
     setFarmerFarms([]);
     setRightDrawerOpen(false);
+    setFarmDetailsOpen(false); // ADDED: Close farm details
     
     // Enable farm summary drawer
     setFarmsSummaryOpen(true);
@@ -327,10 +431,30 @@ const Dashboard = () => {
     return params;
   }, [activeFarmLayer, farmTypeFilter, cropTypeFilter, livestockTypeFilter, communityFilter, shouldFetchFarms]);
   
+  // Handle clustered points toggles
+  const handleToggleFarmersOnMap = useCallback(() => {
+    setShowFarmersOnMap(prev => !prev);
+  }, []);
+
+  const handleToggleFarmsOnMap = useCallback(() => {
+    setShowFarmsOnMap(prev => !prev);
+  }, []);
+
+  // Auto turn-off clusters when analytics layers are disabled
+  useEffect(() => {
+    const hasActiveAnalyticsLayers = activeLayers.farmersByState || activeLayers.farmersByLGA || 
+                                    activeLayers.commodityByState || activeLayers.commodityByLGA;
+    
+    if (!hasActiveAnalyticsLayers) {
+      // Turn off both clustering options when no analytics layers are active
+      setShowFarmersOnMap(false);
+      setShowFarmsOnMap(false);
+    }
+  }, [activeLayers.farmersByState, activeLayers.farmersByLGA, activeLayers.commodityByState, activeLayers.commodityByLGA]);
+
   // Handle farm summary close
   const handleCloseFarmSummary = useCallback(() => {
     setFarmsSummaryOpen(false);
-    setActiveFarmLayer(null);
   }, []);
 
   return (
@@ -374,6 +498,14 @@ const Dashboard = () => {
           onFarmSelect={handleFarmSelect}
           onFarmsLoaded={handleFarmsLoaded}
         />
+
+        {/* Farm Details Drawer */}
+        <FarmDetailsDrawer
+          isOpen={farmDetailsOpen}
+          onClose={handleCloseFarmDetails}
+          selectedFarm={selectedFarm}
+          onAdvisoryClick={handleAdvisoryClick}
+        />
         
         {/* Farms Summary Drawer */}
         <FarmsSummary
@@ -388,42 +520,57 @@ const Dashboard = () => {
             activeFarmLayer === 'crop' ? 'Farms by Crop' :
             activeFarmLayer === 'livestock' && livestockTypeFilter ? `Farms with ${livestockTypeFilter.charAt(0).toUpperCase() + livestockTypeFilter.slice(1)}` :
             activeFarmLayer === 'livestock' ? 'Farms by Livestock' :
-            activeFarmLayer === 'community' && communityFilter ? `Farms in ${communityFilter}` :
+            activeFarmLayer === 'community' && communityFilter ? `${communityFilter} Community Farms` :
             activeFarmLayer === 'community' ? 'Farms by Community' :
-            'Farms Summary'
-          }
-          isLoading={isFarmDataLoading}
-          selectedFilter={
-            activeFarmLayer === 'all' ? 'all' :
-            activeFarmLayer === 'type' && farmTypeFilter ? 'selected' :
-            activeFarmLayer === 'crop' && cropTypeFilter ? 'selected' :
-            activeFarmLayer === 'livestock' && livestockTypeFilter ? 'selected' :
-            activeFarmLayer === 'community' && communityFilter ? 'selected' :
-            'none'
+            'Farm Layer Summary'
           }
         />
 
-        {/* Map Container - Full Screen */}
-        <MapContainer 
+        {/* Map Container */}
+        <MapContainer
           basemap={selectedBasemap}
           activeLayers={activeLayers}
           selectedFarmer={selectedFarmer}
           selectedFarm={selectedFarm}
           farmerFarms={farmerFarms}
           onFarmSelect={handleFarmSelect}
+          showFarmersOnMap={showFarmersOnMap}
+          showFarmsOnMap={showFarmsOnMap}
+          onToggleFarmersOnMap={handleToggleFarmersOnMap}
+          onToggleFarmsOnMap={handleToggleFarmsOnMap}
+          onBasemapChange={handleBasemapChange}
         >
-          {/* Render farm layers - only when shouldFetchFarms is true or for "all" layer */}
+          {/* Farm layers - only render when farm layer is active */}
           {activeFarmLayer && (
-            activeFarmLayer === 'all' || shouldFetchFarms
-          ) && (
             <FarmsLayer
-              visible={true}
+              key={`${activeFarmLayer}-${farmTypeFilter}-${cropTypeFilter}-${livestockTypeFilter}-${communityFilter}`}
               filterParams={getFarmFilterParams()}
-              onFarmsLoaded={handleFarmDataLoaded}
+              onDataLoaded={handleFarmDataLoaded}
+              onAdvisoryClick={handleAdvisoryClick}
+              shouldFetch={shouldFetchFarms}
+              onFetchCompleted={() => setShouldFetchFarms(false)}
+              isLoading={isFarmDataLoading}
+            />
+          )}
+
+          {/* Clustered points layers - only render when analytics layers are active */}
+          {(activeLayers.farmersByState || activeLayers.farmersByLGA || activeLayers.commodityByState || activeLayers.commodityByLGA) && (
+            <ClusteredPointsLayer
+              showFarmers={showFarmersOnMap}
+              showFarms={showFarmsOnMap}
+              onSelectFarmer={handleSelectFarmer}
               onSelectFarm={handleFarmSelect}
+              onAdvisoryClick={handleAdvisoryClick}
             />
           )}
         </MapContainer>
+
+        {/* ADDED: Advisory Input Modal */}
+        <AdvisoryInputModal
+          isOpen={showAdvisoryModal}
+          onClose={handleAdvisoryModalClose}
+          farm={selectedFarmForAdvisory}
+        />
       </div>
     </Layout>
   );
