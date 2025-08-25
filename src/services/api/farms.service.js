@@ -124,9 +124,37 @@ const loadFilterOptions = async () => {
   }
 };
 
+/**
+ * Get farm details by farm ID using the correct API endpoint
+ * @param {string} farmId - Farm ID to fetch details for
+ * @returns {Promise<Object>} - Farm object with complete details
+ */
+const getFarmById = async (farmId) => {
+  try {
+    const token = getToken();
+    const { data } = await api.get('/farms', {
+      params: { farm_id: farmId },
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    // The API returns an array, so return the first farm if it exists
+    if (data && Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+    
+    throw new Error('Farm not found');
+  } catch (error) {
+    console.error('Error fetching farm by ID:', error);
+    throw error;
+  }
+};
+
 // Create a service object with all functions
 const farmService = {
   getFarms,
+  getFarmById,
   getUniqueValues,
   calculateFarmsSummary,
   loadFilterOptions

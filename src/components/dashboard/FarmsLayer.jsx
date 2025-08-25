@@ -4,7 +4,7 @@ import { GeoJSON, useMap, CircleMarker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import farmService from '../../services/api/farms.service';
 import communityService from '../../services/api/community.service';
-import FarmPopup from './FarmPopup';
+import FarmPopupOnClick from './FarmPopupOnClick';
 import { getFarmStyle, getFarmMarkerSize, calculateCentroid } from './utils/geometryUtils';
 
 // Threshold zoom level for switching between points and polygons
@@ -265,7 +265,7 @@ const FarmsLayer = ({
                 click: () => onSelectFarm(farm)
               }}
             >
-              <FarmPopup farm={farm} includeFarmerDetails={false} />
+              <FarmPopupOnClick farm={farm} />
             </CircleMarker>
           );
         }
@@ -280,7 +280,7 @@ const FarmsLayer = ({
               click: () => onSelectFarm(farm)
             }}
           >
-            <FarmPopup farm={farm} includeFarmerDetails={false} />
+            <FarmPopupOnClick farm={farm} />
           </GeoJSON>
         );
       })}

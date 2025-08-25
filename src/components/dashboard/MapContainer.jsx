@@ -11,7 +11,7 @@ import MapZoomProtector from './MapZoomProtector';
 import MapUpdater from './MapUpdater';
 import DataLayers from './DataLayers';
 import MeasurementControl from './MeasurementControl';
-import FarmPopup from './FarmPopup';
+import FarmPopupOnClick from './FarmPopupOnClick';
 import AdvisoryInputModal from '../advisory/AdvisoryInputModal';
 
 // Memoized controller to prevent unnecessary rerenders
@@ -247,7 +247,7 @@ const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom, onAdv
           click: () => onClick && onClick(farm)
         }}
       >
-        <FarmPopup farm={farm} includeFarmerDetails={false} onAdvisoryClick={onAdvisoryClick} />
+        <FarmPopupOnClick farm={farm} onAdvisoryClick={onAdvisoryClick} />
       </CircleMarker>
     );
   }
@@ -261,7 +261,7 @@ const StableFarmGeometry = memo(({ farm, isSelected, onClick, currentZoom, onAdv
         click: () => onClick && onClick(farm)
       }}
     >
-      <FarmPopup farm={farm} includeFarmerDetails={false} onAdvisoryClick={onAdvisoryClick} />
+      <FarmPopupOnClick farm={farm} onAdvisoryClick={onAdvisoryClick} />
     </GeoJSON>
   );
 });
@@ -305,6 +305,10 @@ const MapContainer = ({
   selectedFarm = null,
   farmerFarms = [],
   onFarmSelect,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap,
   children
 }) => {
   const [currentZoom, setCurrentZoom] = useState(defaultZoom);
@@ -407,7 +411,13 @@ const MapContainer = ({
           />
           
           {/* Optional layers */}
-          <DataLayers activeLayers={activeLayers} />
+          <DataLayers 
+            activeLayers={activeLayers}
+            showFarmersOnMap={showFarmersOnMap}
+            showFarmsOnMap={showFarmsOnMap}
+            onToggleFarmersOnMap={onToggleFarmersOnMap}
+            onToggleFarmsOnMap={onToggleFarmsOnMap}
+          />
           <MeasurementControl />
           
           {/* Farmer marker */}

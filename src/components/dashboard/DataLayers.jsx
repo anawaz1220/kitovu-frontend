@@ -17,7 +17,13 @@ import useMapData from '../../hooks/useMapData';
 /**
  * Component that renders all map data layers based on active selections
  */
-const DataLayers = ({ activeLayers }) => {
+const DataLayers = ({ 
+  activeLayers,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap
+}) => {
   // Use our custom hook to fetch and manage all data
   const {
     farmerStateData,
@@ -175,6 +181,10 @@ const DataLayers = ({ activeLayers }) => {
         farmerLGAData={farmerLGAData}
         commodityStateData={commodityStateData}
         commodityLGAData={commodityLGAData}
+        showFarmersOnMap={showFarmersOnMap}
+        showFarmsOnMap={showFarmsOnMap}
+        onToggleFarmersOnMap={onToggleFarmersOnMap}
+        onToggleFarmsOnMap={onToggleFarmsOnMap}
       />
 
       {/* Loading indicator */}

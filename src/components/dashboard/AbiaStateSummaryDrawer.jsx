@@ -1,6 +1,6 @@
 // src/components/dashboard/AbiaStateSummaryDrawer.jsx
 import React from 'react';
-import { X, Users, LandPlot, Ruler, Wheat, MapPin } from 'lucide-react';
+import { X, Users, LandPlot, Ruler, Wheat, MapPin, Eye, EyeOff } from 'lucide-react';
 
 /**
  * AbiaStateSummaryDrawer component for displaying complete Abia state summary
@@ -16,7 +16,11 @@ const AbiaStateSummaryDrawer = ({
   onClose, 
   summaryData, 
   isLoading = false,
-  error = null 
+  error = null,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap
 }) => {
   if (!isOpen) return null;
 
@@ -87,7 +91,7 @@ const AbiaStateSummaryDrawer = ({
         onWheel={(e) => e.stopPropagation()}
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="p-4">
+        <div className="p-4" onWheel={(e) => e.stopPropagation()}>
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64">
               <div className="w-12 h-12 border-4 border-kitovu-purple border-t-transparent rounded-full animate-spin"></div>
@@ -104,31 +108,67 @@ const AbiaStateSummaryDrawer = ({
               <p className="mt-4">No state summary data available</p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="space-y-6" onWheel={(e) => e.stopPropagation()}>
               
 
               {/* Total Farmers */}
               <div className="bg-gradient-to-r from-purple-50 to-indigo-50 rounded-lg p-4 shadow-sm">
-                <div className="flex items-center">
-                  <div className="bg-purple-100 rounded-full p-3 mr-4">
-                    <Users className="h-6 w-6 text-kitovu-purple" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="bg-purple-100 rounded-full p-3 mr-4">
+                      <Users className="h-6 w-6 text-kitovu-purple" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Total Farmers</h3>
+                      <p className="text-2xl font-bold text-gray-800">{summaryData.farmers_count}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Total Farmers</h3>
-                    <p className="text-2xl font-bold text-gray-800">{summaryData.farmers_count}</p>
+                  <div className="flex flex-col items-end">
+                    <input
+                      type="checkbox"
+                      checked={showFarmersOnMap}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (onToggleFarmersOnMap) onToggleFarmersOnMap();
+                      }}
+                      className={`w-5 h-5 text-blue-600 bg-white border-2 rounded focus:ring-blue-500 focus:ring-2 transition-all duration-200 cursor-pointer ${
+                        showFarmersOnMap 
+                          ? 'border-blue-500 bg-blue-50 shadow-md' 
+                          : 'border-pink-400 hover:border-pink-500 hover:shadow-sm animate-pulse'
+                      }`}
+                    />
+                    <label className="text-[10px] text-gray-600 mt-1 text-center">View on Map</label>
                   </div>
                 </div>
               </div>
               
               {/* Total Farms */}
               <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 shadow-sm">
-                <div className="flex items-center">
-                  <div className="bg-blue-100 rounded-full p-3 mr-4">
-                    <LandPlot className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="bg-blue-100 rounded-full p-3 mr-4">
+                      <LandPlot className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-gray-500">Total Farms</h3>
+                      <p className="text-2xl font-bold text-gray-800">{summaryData.farms_count}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-500">Total Farms</h3>
-                    <p className="text-2xl font-bold text-gray-800">{summaryData.farms_count}</p>
+                  <div className="flex flex-col items-end">
+                    <input
+                      type="checkbox"
+                      checked={showFarmsOnMap}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        if (onToggleFarmsOnMap) onToggleFarmsOnMap();
+                      }}
+                      className={`w-5 h-5 text-green-600 bg-white border-2 rounded focus:ring-green-500 focus:ring-2 transition-all duration-200 cursor-pointer ${
+                        showFarmsOnMap 
+                          ? 'border-green-500 bg-green-50 shadow-md' 
+                          : 'border-pink-400 hover:border-pink-500 hover:shadow-sm animate-pulse'
+                      }`}
+                    />
+                    <label className="text-[10px] text-gray-600 mt-1 text-center">View on Map</label>
                   </div>
                 </div>
               </div>

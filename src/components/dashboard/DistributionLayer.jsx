@@ -18,7 +18,11 @@ const DistributionLayer = ({
   farmerStateData,
   farmerLGAData,
   commodityStateData,
-  commodityLGAData
+  commodityLGAData,
+  showFarmersOnMap = false,
+  showFarmsOnMap = false,
+  onToggleFarmersOnMap,
+  onToggleFarmsOnMap
 }) => {
   const map = useMap();
   const [hasFittedBounds, setHasFittedBounds] = useState({
@@ -96,12 +100,28 @@ const DistributionLayer = ({
   
   // Check if we should show the new Abia State Summary instead of the old farmer by state
   if (showFarmersByState) {
-    return <AbiaStateSummaryLayer visible={true} />;
+    return (
+      <AbiaStateSummaryLayer 
+        visible={true}
+        showFarmersOnMap={showFarmersOnMap}
+        showFarmsOnMap={showFarmsOnMap}
+        onToggleFarmersOnMap={onToggleFarmersOnMap}
+        onToggleFarmsOnMap={onToggleFarmsOnMap}
+      />
+    );
   }
   
   // Check if we should show the new Abia LGA Summary instead of the old farmer by LGA
   if (showFarmersByLGA) {
-    return <AbiaLGASummaryLayer visible={true} />;
+    return (
+      <AbiaLGASummaryLayer 
+        visible={true}
+        showFarmersOnMap={showFarmersOnMap}
+        showFarmsOnMap={showFarmsOnMap}
+        onToggleFarmersOnMap={onToggleFarmersOnMap}
+        onToggleFarmsOnMap={onToggleFarmsOnMap}
+      />
+    );
   }
   
   // Determine which data to use for other layers
