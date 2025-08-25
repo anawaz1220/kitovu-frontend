@@ -1,12 +1,46 @@
 // src/components/dashboard/FarmDetailsDrawer.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, MapPin, Ruler, Sprout, User, DollarSign, Calendar, Home, Layers, Navigation } from 'lucide-react';
+import { getFarmerById } from '../../services/api/farmerQuery.service';
 
 /**
  * Farm details drawer component - displays comprehensive farm information
- * Maps API response fields properly
+ * Maps API response fields properly and fetches farmer details
  */
 const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) => {
+  const [farmerDetails, setFarmerDetails] = useState(null);
+  const [isLoadingFarmer, setIsLoadingFarmer] = useState(false);
+  const [farmerError, setFarmerError] = useState(null);
+
+  // Fetch farmer details when selectedFarm changes
+  useEffect(() => {
+    const fetchFarmerDetails = async () => {
+      if (!selectedFarm?.farmer_id) {
+        setFarmerDetails(null);
+        return;
+      }
+
+      setIsLoadingFarmer(true);
+      setFarmerError(null);
+
+      try {
+        console.log('Fetching farmer details for ID:', selectedFarm.farmer_id);
+        const farmer = await getFarmerById(selectedFarm.farmer_id);
+        console.log('Farmer details received:', farmer);
+        setFarmerDetails(farmer);
+      } catch (error) {
+        console.error('Error fetching farmer details:', error);
+        setFarmerError('Failed to load farmer details');
+      } finally {
+        setIsLoadingFarmer(false);
+      }
+    };
+
+    if (isOpen && selectedFarm) {
+      fetchFarmerDetails();
+    }
+  }, [isOpen, selectedFarm?.farmer_id]);
+
   if (!isOpen || !selectedFarm) return null;
 
   const handleProvideAdvisoryClick = (e) => {
@@ -47,6 +81,43 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
     } catch {
       return 'Invalid Date';
     }
+  };
+
+  // Helper function to format farmer name
+  const getFarmerName = () => {
+    if (isLoadingFarmer) return 'Loading...';
+    if (farmerError || !farmerDetails) return 'Unable to load farmer name';
+    
+    const firstName = farmerDetails.first_name || '';
+    const lastName = farmerDetails.last_name || '';
+    return `${firstName} ${lastName}`.trim() || 'Name not available';
+  };
+
+  // Helper function to format full address
+  const getFullAddress = () => {
+    if (!farmerDetails) return [];
+    
+    const addressParts = [];
+    
+    // Add city if available
+    if (farmerDetails.city) {
+      addressParts.push(farmerDetails.city);
+    }
+    
+    // Add LGA if available
+    if (farmerDetails.lga) {
+      addressParts.push(farmerDetails.lga);
+    }
+    
+    // Add state if available
+    if (farmerDetails.state) {
+      addressParts.push(farmerDetails.state);
+    }
+    
+    // Always add Nigeria at the end
+    addressParts.push('Nigeria');
+    
+    return addressParts;
   };
 
   // Debug: Log the selectedFarm data
@@ -133,13 +204,16 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
                 </span>
               </div>
               
-              {/* Farmer ID */}
+              {/* UPDATED: Farmer Name instead of Farmer ID */}
               {selectedFarm.farmer_id && (
                 <div className="flex justify-between items-center py-2 border-b border-gray-200">
-                  <span className="text-sm text-gray-600">Farmer ID:</span>
-                  <span className="font-medium text-gray-800 text-xs">
-                    {selectedFarm.farmer_id}
+                  <span className="text-sm text-gray-600">Farmer:</span>
+                  <span className={`font-medium ${isLoadingFarmer ? 'text-gray-500' : 'text-gray-800'}`}>
+                    {getFarmerName()}
                   </span>
+                  {isLoadingFarmer && (
+                    <div className="ml-2 w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+                  )}
                 </div>
               )}
               
@@ -225,7 +299,7 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
           </div>
         )}
 
-        {/* Location Information */}
+        {/* UPDATED: Location Information with Address */}
         <div className="mb-6">
           <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
             <Navigation className="h-5 w-5 text-orange-600 mr-2" />
@@ -234,10 +308,35 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
           
           <div className="bg-orange-50 rounded-lg p-4">
             <div className="space-y-2">
+              {/* UPDATED: Full Address from farmer details */}
+              {farmerDetails && (
+                <div className="mb-3">
+                  <div className="text-sm text-gray-600 mb-1">Address:</div>
+                  <div className="font-medium text-orange-800">
+                    {getFullAddress().map((part, index) => (
+                      <div key={index} className="text-sm">
+                        {index === 0 && '📍 '}{part}
+                        {index < getFullAddress().length - 1 && ','}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Street Address if available */}
+              {farmerDetails?.street_address && (
+                <div className="flex justify-between items-center border-t border-orange-200 pt-2">
+                  <span className="text-sm text-gray-600">Street:</span>
+                  <span className="font-medium text-orange-800 text-right text-sm max-w-48">
+                    {farmerDetails.street_address}
+                  </span>
+                </div>
+              )}
+              
               {/* Farm Coordinates */}
               {selectedFarm.farm_latitude && selectedFarm.farm_longitude && (
                 <>
-                  <div className="flex justify-between items-center">
+                  <div className="flex justify-between items-center border-t border-orange-200 pt-2">
                     <span className="text-sm text-gray-600">Latitude:</span>
                     <span className="font-medium text-orange-800">
                       {formatNumber(selectedFarm.farm_latitude, 6)}°
@@ -254,37 +353,15 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
               
               {/* If no coordinates, show message */}
               {(!selectedFarm.farm_latitude || !selectedFarm.farm_longitude) && (
-                <div className="text-center text-orange-600">
-                  <p className="text-sm">Coordinates not available</p>
+                <div className="text-center text-orange-600 border-t border-orange-200 pt-2">
+                  <p className="text-sm">Specific coordinates not available</p>
                   <p className="text-xs">Location determined by farm geometry</p>
-                </div>
-              )}
-              
-              {/* Legacy location fields */}
-              {selectedFarm.state && (
-                <div className="flex justify-between items-center border-t border-orange-200 pt-2 mt-2">
-                  <span className="text-sm text-gray-600">State:</span>
-                  <span className="font-medium text-orange-800">{selectedFarm.state}</span>
-                </div>
-              )}
-              
-              {selectedFarm.lga && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">LGA:</span>
-                  <span className="font-medium text-orange-800">{selectedFarm.lga}</span>
-                </div>
-              )}
-              
-              {selectedFarm.community && (
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Community:</span>
-                  <span className="font-medium text-orange-800">{selectedFarm.community}</span>
                 </div>
               )}
               
               {/* Distance Information */}
               {selectedFarm.distance_to_farm_km && (
-                <div className="flex justify-between items-center border-t border-orange-200 pt-2 mt-2">
+                <div className="flex justify-between items-center border-t border-orange-200 pt-2">
                   <span className="text-sm text-gray-600">Distance to Farm:</span>
                   <span className="font-medium text-orange-800">
                     {formatNumber(selectedFarm.distance_to_farm_km)} km

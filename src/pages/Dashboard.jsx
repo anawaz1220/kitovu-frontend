@@ -538,6 +538,7 @@ const Dashboard = () => {
           showFarmsOnMap={showFarmsOnMap}
           onToggleFarmersOnMap={handleToggleFarmersOnMap}
           onToggleFarmsOnMap={handleToggleFarmsOnMap}
+          onBasemapChange={handleBasemapChange}
         >
           {/* Farm layers - only render when farm layer is active */}
           {activeFarmLayer && (

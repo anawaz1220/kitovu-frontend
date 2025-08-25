@@ -14,6 +14,34 @@ import MeasurementControl from './MeasurementControl';
 import FarmPopupOnClick from './FarmPopupOnClick';
 import AdvisoryInputModal from '../advisory/AdvisoryInputModal';
 
+// Auto-Basemap Switcher Component
+const AutoBasemapSwitcher = ({ currentBasemap, onBasemapChange }) => {
+  const map = useMap();
+  
+  useEffect(() => {
+    const handleZoomEnd = () => {
+      const currentZoom = map.getZoom();
+      
+      // Auto switch to satellite when zoom > 14, back to streets when <= 14
+      if (currentZoom > 14 && currentBasemap !== 'satellite') {
+        console.log('🛰️ Auto-switching to satellite view at zoom:', currentZoom);
+        onBasemapChange('satellite');
+      } else if (currentZoom <= 14 && currentBasemap === 'satellite') {
+        console.log('🗺️ Auto-switching to streets view at zoom:', currentZoom);
+        onBasemapChange('streets');
+      }
+    };
+    
+    map.on('zoomend', handleZoomEnd);
+    
+    return () => {
+      map.off('zoomend', handleZoomEnd);
+    };
+  }, [map, currentBasemap, onBasemapChange]);
+  
+  return null;
+};
+
 // Memoized controller to prevent unnecessary rerenders
 const MapController = memo(({ selectedFarmer, selectedFarm, farmerFarms }) => {
   const map = useMap();
@@ -50,7 +78,7 @@ const MapController = memo(({ selectedFarmer, selectedFarm, farmerFarms }) => {
       // Reset after a short delay
       setTimeout(() => {
         userZoomingRef.current = false;
-      }, 500);
+      }, 2000);
     };
     
     map.on('zoomstart', handleZoomStart);
@@ -62,115 +90,53 @@ const MapController = memo(({ selectedFarmer, selectedFarm, farmerFarms }) => {
     };
   }, [map]);
   
-  // Handle farmer selection (with debounce)
+  // Navigate to selected farmer
   useEffect(() => {
-    if (!selectedFarmer || !initialLoadCompletedRef.current) return;
-    
-    // Check if we need to do anything
-    if (prevFarmerRef.current && prevFarmerRef.current.id === selectedFarmer.id) return;
-    
-    // If user is actively zooming, don't interrupt them
-    if (userZoomingRef.current) {
-      prevFarmerRef.current = selectedFarmer;
+    if (!selectedFarmer || 
+        !selectedFarmer.user_latitude || 
+        !selectedFarmer.user_longitude ||
+        prevFarmerRef.current === selectedFarmer) {
       return;
     }
     
-    // Create a debounced navigation function
     const timer = setTimeout(() => {
-      console.log('Flying to farmer:', selectedFarmer.first_name);
-      if (selectedFarmer.user_latitude && selectedFarmer.user_longitude) {
-        map.flyTo(
-          [selectedFarmer.user_latitude, selectedFarmer.user_longitude],
-          14,
-          { animate: true, duration: 1 }
-        );
+      try {
+        const position = [selectedFarmer.user_latitude, selectedFarmer.user_longitude];
+        console.log('Flying to farmer:', selectedFarmer.first_name, selectedFarmer.last_name, position);
+        
+        // Only navigate if user isn't interacting with the map
+        if (!userZoomingRef.current) {
+          map.flyTo(position, 12, {
+            animate: true,
+            duration: 1
+          });
+        }
+        
+        // Update the ref
+        prevFarmerRef.current = selectedFarmer;
+      } catch (error) {
+        console.error('Error flying to farmer:', error);
       }
-      
-      // Update the ref
-      prevFarmerRef.current = selectedFarmer;
-      farmsFittedRef.current = false;
     }, 300);
     
     return () => clearTimeout(timer);
   }, [map, selectedFarmer]);
   
-  // Fit to all farms when farms are loaded
+  // Navigate to selected farm
   useEffect(() => {
-    if (!farmerFarms || farmerFarms.length === 0 || !selectedFarmer || farmsFittedRef.current || !initialLoadCompletedRef.current) return;
-    
-    // If user is actively zooming, don't disrupt them
-    if (userZoomingRef.current) {
-      farmsFittedRef.current = true;
+    if (!selectedFarm || 
+        !selectedFarm.geom ||
+        prevFarmRef.current === selectedFarm) {
       return;
     }
     
-    // Debounce to avoid competing with other map movements
     const timer = setTimeout(() => {
       try {
-        console.log('Fitting to all farms for farmer:', selectedFarmer.first_name);
+        console.log('Flying to farm:', selectedFarm.id || selectedFarm.farm_id);
         
-        // Filter farms to only those with valid geometries
-        const validFarms = farmerFarms.filter(farm => farm.geom);
-        
-        if (validFarms.length > 0) {
-          // Create a feature collection
-          const features = validFarms.map(farm => ({
-            type: 'Feature',
-            geometry: farm.geom
-          }));
-          
-          const featureCollection = {
-            type: 'FeatureCollection',
-            features
-          };
-          
-          // Create a GeoJSON layer and fit bounds
-          const geoJsonLayer = L.geoJSON(featureCollection);
-          const bounds = geoJsonLayer.getBounds();
-          
-          if (bounds.isValid()) {
-            // Check if user is actively using the map
-            if (!userZoomingRef.current) {
-              map.fitBounds(bounds, {
-                padding: [100, 100],
-                animate: true,
-                duration: 1
-              });
-            }
-            
-            // Mark that we've fitted the farms
-            farmsFittedRef.current = true;
-          }
-        }
-      } catch (error) {
-        console.error('Error fitting to farm bounds:', error);
-      }
-    }, 800); // Slightly longer delay to let the map settle
-    
-    return () => clearTimeout(timer);
-  }, [map, farmerFarms, selectedFarmer]);
-  
-  // Handle individual farm selection
-  useEffect(() => {
-    if (!selectedFarm || !selectedFarm.geom || !initialLoadCompletedRef.current) return;
-    
-    // Check if we need to do anything
-    if (prevFarmRef.current && prevFarmRef.current.id === selectedFarm.id) return;
-    
-    // If user is actively zooming, don't disrupt them
-    if (userZoomingRef.current) {
-      prevFarmRef.current = selectedFarm;
-      return;
-    }
-    
-    // Debounce to avoid conflicts
-    const timer = setTimeout(() => {
-      try {
-        console.log('Flying to farm:', selectedFarm.farm_id);
-        
-        // Create a GeoJSON layer to calculate bounds
-        const geoJsonLayer = L.geoJSON(selectedFarm.geom);
-        const bounds = geoJsonLayer.getBounds();
+        // Calculate bounds from geometry
+        const tempLayer = L.geoJSON(selectedFarm.geom);
+        const bounds = tempLayer.getBounds();
         
         if (bounds.isValid()) {
           // Only navigate if user isn't interacting with the map
@@ -309,6 +275,7 @@ const MapContainer = ({
   showFarmsOnMap = false,
   onToggleFarmersOnMap,
   onToggleFarmsOnMap,
+  onBasemapChange, // ADDED: For auto-basemap switching
   children
 }) => {
   const [currentZoom, setCurrentZoom] = useState(defaultZoom);
@@ -399,6 +366,14 @@ const MapContainer = ({
           <ZoomControl position="bottomright" />
           <MapUpdater basemap={basemap} />
           <MapZoomProtector />
+          
+          {/* ADDED: Auto-Basemap Switcher */}
+          {onBasemapChange && (
+            <AutoBasemapSwitcher 
+              currentBasemap={basemap} 
+              onBasemapChange={onBasemapChange} 
+            />
+          )}
           
           {/* Zoom monitor */}
           <ZoomMonitor onZoomChange={handleZoomChange} />

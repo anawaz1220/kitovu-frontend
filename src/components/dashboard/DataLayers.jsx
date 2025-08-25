@@ -7,12 +7,18 @@ import {
   lgaStyle 
 } from './utils/mapStyles';
 import {
-  onEachStateFeature,
   onEachLGAFeature,
   safelyFitBounds
 } from './utils/mapInteractions';
 import DistributionLayer from './DistributionLayer';
 import useMapData from '../../hooks/useMapData';
+
+// Non-interactive state boundary feature handler (no hover, no popup, no click)
+const onEachNonInteractiveStateFeature = (feature, layer) => {
+  // Do nothing - completely non-interactive
+  // No popup, no hover effects, no click handlers
+  return;
+};
 
 /**
  * Component that renders all map data layers based on active selections
@@ -152,14 +158,15 @@ const DataLayers = ({
         />
       )}
       
-      {/* State Boundaries Layer */}
+      {/* State Boundaries Layer - FIXED: Non-interactive, no hover, no popup */}
       {activeLayers.stateBoundary && stateData && stateData.features && stateData.features.length > 0 && (
         <GeoJSON 
           key="state-boundaries"
           data={stateData} 
           style={stateStyle}
-          onEachFeature={onEachStateFeature}
+          onEachFeature={onEachNonInteractiveStateFeature}
           ref={stateLayerRef}
+          interactive={false}
         />
       )}
       
