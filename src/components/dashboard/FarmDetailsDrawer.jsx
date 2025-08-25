@@ -3,6 +3,30 @@ import React, { useState, useEffect } from 'react';
 import { X, MapPin, Ruler, Sprout, User, DollarSign, Calendar, Home, Layers, Navigation } from 'lucide-react';
 import { getFarmerById } from '../../services/api/farmerQuery.service';
 
+// Utility: format nicely (remove underscores, capitalize words)
+const formatText = (text) => {
+  if (!text) return null;
+  return text
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+};
+
+// Utility: build address in order
+const buildFullAddress = (farmerDetails) => {
+  const parts = [
+    farmerDetails?.street_address,
+    farmerDetails?.city,
+    farmerDetails?.lga,
+    farmerDetails?.state,
+    "Nigeria" // always hardcoded
+  ]
+    .filter(Boolean) // remove null/undefined/empty
+    .map(formatText);
+
+  return parts.join(', ');
+};
+
 /**
  * Farm details drawer component - displays comprehensive farm information
  * Maps API response fields properly and fetches farmer details
@@ -53,6 +77,7 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
       console.warn("onAdvisoryClick not provided");
     }
   };
+  
 
   // Helper function to format numbers
   const formatNumber = (value, decimals = 2) => {
@@ -197,12 +222,12 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
           <div className="bg-gray-50 rounded-lg p-4">
             <div className="grid grid-cols-1 gap-3">
               {/* Farm ID (Numeric) - Show prominently */}
-              <div className="flex justify-between items-center py-2 border-b border-gray-200">
+              {/* <div className="flex justify-between items-center py-2 border-b border-gray-200">
                 <span className="text-sm text-gray-600">Farm ID:</span>
                 <span className="font-bold text-lg text-green-600">
                   #{selectedFarm.farm_id || 'N/A'}
                 </span>
-              </div>
+              </div> */}
               
               {/* UPDATED: Farmer Name instead of Farmer ID */}
               {selectedFarm.farmer_id && (
@@ -307,69 +332,29 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick }) =
           </h3>
           
           <div className="bg-orange-50 rounded-lg p-4">
-            <div className="space-y-2">
-              {/* UPDATED: Full Address from farmer details */}
-              {farmerDetails && (
-                <div className="mb-3">
-                  <div className="text-sm text-gray-600 mb-1">Address:</div>
-                  <div className="font-medium text-orange-800">
-                    {getFullAddress().map((part, index) => (
-                      <div key={index} className="text-sm">
-                        {index === 0 && '📍 '}{part}
-                        {index < getFullAddress().length - 1 && ','}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              
-              {/* Street Address if available */}
-              {farmerDetails?.street_address && (
-                <div className="flex justify-between items-center border-t border-orange-200 pt-2">
-                  <span className="text-sm text-gray-600">Street:</span>
-                  <span className="font-medium text-orange-800 text-right text-sm max-w-48">
-                    {farmerDetails.street_address}
-                  </span>
-                </div>
-              )}
-              
-              {/* Farm Coordinates */}
-              {selectedFarm.farm_latitude && selectedFarm.farm_longitude && (
-                <>
-                  <div className="flex justify-between items-center border-t border-orange-200 pt-2">
-                    <span className="text-sm text-gray-600">Latitude:</span>
-                    <span className="font-medium text-orange-800">
-                      {formatNumber(selectedFarm.farm_latitude, 6)}°
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Longitude:</span>
-                    <span className="font-medium text-orange-800">
-                      {formatNumber(selectedFarm.farm_longitude, 6)}°
-                    </span>
-                  </div>
-                </>
-              )}
-              
-              {/* If no coordinates, show message */}
-              {(!selectedFarm.farm_latitude || !selectedFarm.farm_longitude) && (
-                <div className="text-center text-orange-600 border-t border-orange-200 pt-2">
-                  <p className="text-sm">Specific coordinates not available</p>
-                  <p className="text-xs">Location determined by farm geometry</p>
-                </div>
-              )}
-              
-              {/* Distance Information */}
-              {selectedFarm.distance_to_farm_km && (
-                <div className="flex justify-between items-center border-t border-orange-200 pt-2">
-                  <span className="text-sm text-gray-600">Distance to Farm:</span>
-                  <span className="font-medium text-orange-800">
-                    {formatNumber(selectedFarm.distance_to_farm_km)} km
-                  </span>
-                </div>
-              )}
+        <div className="space-y-2">
+          {/* Address */}
+          {farmerDetails && (
+            <div className="mb-3">
+              <div className="text-sm text-gray-600 mb-1">Address:</div>
+              <div className="font-medium text-orange-800 text-sm">
+                📍 {buildFullAddress(farmerDetails)}
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Distance Information */}
+          {selectedFarm.distance_to_farm_km && (
+            <div className="flex justify-between items-center border-t border-orange-200 pt-2">
+              <span className="text-sm text-gray-600">Distance to Farm:</span>
+              <span className="font-medium text-orange-800">
+                {formatNumber(selectedFarm.distance_to_farm_km)} km
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
         </div>
 
         {/* Crop Information - Only show if crop_type exists */}

@@ -8,8 +8,9 @@ import SmartImageLoader from '../common/SmartImageLoader';
 
 
 // Base URL for images - use your development server URL
-const IMAGE_BASE_URL = import.meta.env.VITE_API_URL||'http://localhost:3000';
-console.log('Using IMAGE_BASE_URL:', IMAGE_BASE_URL);
+// const IMAGE_BASE_URL = import.meta.env.VITE_API_URL||'http://localhost:3000';
+// console.log('Using IMAGE_BASE_URL:', IMAGE_BASE_URL);
+const IMAGE_BASE_URL = 'http://localhost:3000';
 // Simple date formatter function (to avoid date-fns dependency)
 const formatDate = (dateString) => {
   if (!dateString) return 'Not specified';
