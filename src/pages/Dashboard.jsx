@@ -9,11 +9,13 @@ import FarmsSummary from '../components/dashboard/FarmsSummary';
 import FarmsLayer from '../components/dashboard/FarmsLayer';
 import ClusteredPointsLayer from '../components/dashboard/ClusteredPointsLayer';
 import FarmDetailsDrawer from '../components/dashboard/FarmDetailsDrawer';
+import AnalyticsResultsDrawer from '../components/dashboard/AnalyticsResultsDrawer';
 import AdvisoryInputModal from '../components/advisory/AdvisoryInputModal'; // ADDED: Import advisory modal
 import { getInitialActiveLayers } from '../config/mapSettings';
 import farmService from '../services/api/farms.service';
 import { getFarmers } from '../services/api/farmerQuery.service';
 import communityService from '../services/api/community.service';
+import analyticsService from '../services/api/analytics.service';
 
 /**
 * Dashboard page component with map and control panel
@@ -62,6 +64,30 @@ const Dashboard = () => {
   // Clustered points state
   const [showFarmersOnMap, setShowFarmersOnMap] = useState(false);
   const [showFarmsOnMap, setShowFarmsOnMap] = useState(false);
+
+  // New analytics filter state
+  const [analyticsFilterState, setAnalyticsFilterState] = useState({
+    state: 'Abia',
+    lga: '',
+    city: '',
+    farm_type: '',
+    crop_type: ''
+  });
+  
+  const [analyticsFilterOptions, setAnalyticsFilterOptions] = useState({
+    lgas: [],
+    cities: [],
+    crops: []
+  });
+  
+  const [analyticsLoading, setAnalyticsLoading] = useState({
+    lgas: false,
+    cities: false,
+    crops: false
+  });
+  
+  const [analyticsResults, setAnalyticsResults] = useState(null);
+  const [showAnalyticsDrawer, setShowAnalyticsDrawer] = useState(false);
 
   // Use useCallback for event handlers to prevent unnecessary rerenders
   const toggleLeftDrawer = useCallback(() => {
@@ -323,7 +349,9 @@ const Dashboard = () => {
     setShouldFetchFarms(true); // Always fetch when changing layer type
   }, [activeFarmLayer]);
   
-  // Load crop, livestock, and community options on component mount
+  // OLD: Load crop, livestock, and community options on component mount - DISABLED FOR NEW FILTER IMPLEMENTATION
+  // This was causing large API calls on login - replaced with new filter system
+  /*
   useEffect(() => {
     // Skip if options are already loaded
     if (optionsLoaded) return;
@@ -358,6 +386,7 @@ const Dashboard = () => {
     
     loadOptions();
   }, [optionsLoaded]);
+  */
   
   // Handle farm data loading
   const handleFarmDataLoaded = useCallback((farms) => {
@@ -457,6 +486,123 @@ const Dashboard = () => {
     setFarmsSummaryOpen(false);
   }, []);
 
+  // New analytics filter handlers
+  const handleFilterChange = useCallback(async (newFilter) => {
+    setAnalyticsFilterState(newFilter);
+    
+    // Load LGAs when state is set (always Abia for now)
+    if (newFilter.state && analyticsFilterOptions.lgas.length === 0) {
+      setAnalyticsLoading(prev => ({ ...prev, lgas: true }));
+      try {
+        const lgas = await analyticsService.getLGAs(newFilter.state);
+        setAnalyticsFilterOptions(prev => ({ ...prev, lgas }));
+      } catch (error) {
+        console.error('Error loading LGAs:', error);
+      } finally {
+        setAnalyticsLoading(prev => ({ ...prev, lgas: false }));
+      }
+    }
+    
+    // Load cities when LGA changes
+    if (newFilter.lga && newFilter.lga !== analyticsFilterState.lga) {
+      setAnalyticsLoading(prev => ({ ...prev, cities: true }));
+      try {
+        const cities = await analyticsService.getCities(newFilter.state, newFilter.lga);
+        setAnalyticsFilterOptions(prev => ({ ...prev, cities }));
+      } catch (error) {
+        console.error('Error loading cities:', error);
+        setAnalyticsFilterOptions(prev => ({ ...prev, cities: [] }));
+      } finally {
+        setAnalyticsLoading(prev => ({ ...prev, cities: false }));
+      }
+    }
+    
+    // Clear cities when LGA is cleared
+    if (!newFilter.lga && analyticsFilterState.lga) {
+      setAnalyticsFilterOptions(prev => ({ ...prev, cities: [] }));
+    }
+  }, [analyticsFilterState, analyticsFilterOptions.lgas.length]);
+
+  const handleApplyFilter = useCallback(async () => {
+    try {
+      setAnalyticsLoading(prev => ({ ...prev, applying: true }));
+      
+      // Apply the filter
+      const results = await analyticsService.applyFarmFilter(analyticsFilterState);
+      setAnalyticsResults(results);
+      
+      // Enable clustering when we have results - farmers on by default
+      if (results && results.map_data) {
+        setShowFarmersOnMap(true);
+        setShowFarmsOnMap(false);
+      }
+      
+      // Open analytics drawer to show results
+      setShowAnalyticsDrawer(true);
+      
+      // Close left drawer on mobile
+      if (window.innerWidth < 768) {
+        setLeftDrawerOpen(false);
+      }
+      
+    } catch (error) {
+      console.error('Error applying filter:', error);
+    } finally {
+      setAnalyticsLoading(prev => ({ ...prev, applying: false }));
+    }
+  }, [analyticsFilterState]);
+
+  const handleClearFilter = useCallback(() => {
+    setAnalyticsFilterState({
+      state: 'Abia',
+      lga: '',
+      city: '',
+      farm_type: '',
+      crop_type: ''
+    });
+    setAnalyticsFilterOptions(prev => ({ ...prev, cities: [], crops: [] }));
+    setAnalyticsResults(null);
+    setShowAnalyticsDrawer(false);
+  }, []);
+
+  // Load crops on component mount
+  useEffect(() => {
+    const loadCrops = async () => {
+      if (analyticsFilterOptions.crops.length === 0) {
+        setAnalyticsLoading(prev => ({ ...prev, crops: true }));
+        try {
+          const crops = await analyticsService.getCrops();
+          setAnalyticsFilterOptions(prev => ({ ...prev, crops }));
+        } catch (error) {
+          console.error('Error loading crops:', error);
+        } finally {
+          setAnalyticsLoading(prev => ({ ...prev, crops: false }));
+        }
+      }
+    };
+    
+    loadCrops();
+  }, [analyticsFilterOptions.crops.length]);
+
+  // Load LGAs on component mount
+  useEffect(() => {
+    const loadLGAs = async () => {
+      if (analyticsFilterOptions.lgas.length === 0) {
+        setAnalyticsLoading(prev => ({ ...prev, lgas: true }));
+        try {
+          const lgas = await analyticsService.getLGAs('Abia');
+          setAnalyticsFilterOptions(prev => ({ ...prev, lgas }));
+        } catch (error) {
+          console.error('Error loading LGAs:', error);
+        } finally {
+          setAnalyticsLoading(prev => ({ ...prev, lgas: false }));
+        }
+      }
+    };
+    
+    loadLGAs();
+  }, [analyticsFilterOptions.lgas.length]);
+
   return (
     <Layout 
       showDrawerToggle={true}
@@ -474,7 +620,7 @@ const Dashboard = () => {
           onLayerToggle={handleLayerToggle}
           onDistributionLayerSelect={handleDistributionLayerSelect}
           onSelectFarmer={handleSelectFarmer}
-          // Farm layer props
+          // Farm layer props (kept for backward compatibility but hidden)
           onFarmLayerSelect={handleFarmLayerSelect}
           activeFarmLayer={activeFarmLayer}
           farmTypeFilter={farmTypeFilter}
@@ -488,6 +634,17 @@ const Dashboard = () => {
           cropOptions={cropOptions}
           livestockOptions={livestockOptions}
           communityOptions={communityOptions}
+          // New analytics filter props
+          filterState={analyticsFilterState}
+          onFilterChange={handleFilterChange}
+          lgaOptions={analyticsFilterOptions.lgas}
+          cityOptions={analyticsFilterOptions.cities}
+          filterCropOptions={analyticsFilterOptions.crops}
+          onApplyFilter={handleApplyFilter}
+          onClearFilter={handleClearFilter}
+          isLoadingLgas={analyticsLoading.lgas}
+          isLoadingCities={analyticsLoading.cities}
+          isLoadingCrops={analyticsLoading.crops}
         />
 
         {/* Right Drawer for farmer details - Now optimized for search results */}
@@ -524,6 +681,17 @@ const Dashboard = () => {
             activeFarmLayer === 'community' ? 'Farms by Community' :
             'Farm Layer Summary'
           }
+        />
+        
+        {/* Analytics Results Drawer */}
+        <AnalyticsResultsDrawer
+          isOpen={showAnalyticsDrawer}
+          onClose={() => setShowAnalyticsDrawer(false)}
+          results={analyticsResults}
+          showFarmersChecked={showFarmersOnMap}
+          showFarmsChecked={showFarmsOnMap}
+          onToggleShowFarmers={handleToggleFarmersOnMap}
+          onToggleShowFarms={handleToggleFarmsOnMap}
         />
 
         {/* Map Container */}
