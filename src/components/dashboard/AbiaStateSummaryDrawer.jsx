@@ -38,7 +38,7 @@ const AbiaStateSummaryDrawer = ({
 
   return (
     <div 
-      className="bg-white shadow-lg h-full border-l transition-all duration-300"
+      className="bg-white shadow-lg h-full border-l transition-all duration-300 overflow-y-auto"
       style={{ 
         position: 'absolute', 
         top: 0, 
@@ -73,7 +73,7 @@ const AbiaStateSummaryDrawer = ({
           style={{ 
             pointerEvents: 'auto',
             zIndex: 1003,
-            display: 'none'
+            display: 'block'
           }}
           type="button"
         >

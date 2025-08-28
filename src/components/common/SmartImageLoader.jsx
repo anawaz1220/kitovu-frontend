@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Loader2, User, FileText, AlertCircle } from 'lucide-react';
 import faceDetectionService from '../../services/faceDetection.service';
+import AuthenticatedImage from './AuthenticatedImage';
 
 const SmartImageLoader = ({ 
   profileImageUrl, 
@@ -48,7 +49,16 @@ const SmartImageLoader = ({
         
       } catch (err) {
         console.error('Error in image classification:', err);
-        setError('Failed to classify images');
+        // Handle various image loading errors gracefully
+        if (err.message?.includes('401') || err.message?.includes('Unauthorized')) {
+          setError('Images require authentication - displaying without AI analysis');
+        } else if (err.message?.includes('404') || err.message?.includes('Not Found')) {
+          setError('Images not found - displaying placeholders');
+        } else if (err.message?.includes('Failed to load image')) {
+          setError('Unable to load images - displaying without AI analysis');
+        } else {
+          setError('Failed to classify images - displaying without AI analysis');
+        }
         setIsProcessing(false);
         
         // Fallback to original images
@@ -153,13 +163,10 @@ const SmartImageLoader = ({
       {/* Profile Image */}
       <div className="flex flex-col items-center">
         <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-kitovu-purple">
-          <img 
+          <AuthenticatedImage 
             src={classifiedImages.profileImage}
             alt={farmerName}
             className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.src = '/src/assets/images/default-user.svg';
-            }}
           />
         </div>
         <h3 className="text-xl font-bold text-center text-gray-800 mt-3">
@@ -171,13 +178,10 @@ const SmartImageLoader = ({
       <div className="mt-8">
         <p className="text-sm font-medium text-gray-500 mb-2">ID Document</p>
         <div className="border rounded-md overflow-hidden">
-          <img 
+          <AuthenticatedImage 
             src={classifiedImages.documentImage}
             alt="ID Document" 
             className="w-full h-auto"
-            onError={(e) => {
-              e.target.src = '/src/assets/images/default-user.svg';
-            }}
           />
         </div>
       </div>

@@ -38,7 +38,7 @@ const Layout = ({ children, showDrawerToggle = false, onDrawerToggle, hideFooter
                   className="h-8 w-auto cursor-pointer"
                   onClick={() => navigate('/')}
                 />
-                <span className="ml-2 text-lg font-semibold text-kitovu-purple">TRAK OS</span>
+                {/* <span className="ml-2 text-lg font-semibold text-kitovu-purple">TRAK OS</span> */}
               </div>
             </div>
             
