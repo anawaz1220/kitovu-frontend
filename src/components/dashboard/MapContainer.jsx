@@ -307,6 +307,7 @@ const MapContainer = ({
       baseProps.attribution = '&copy; Google Maps';
     } else {
       baseProps.attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+      baseProps.opacity = 0.6; // Reduce streets map opacity to 60%
     }
     
     return baseProps;

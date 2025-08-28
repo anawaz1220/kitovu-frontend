@@ -34,7 +34,24 @@ const LeftDrawer = ({
   onCommunityFilterChange = () => {},
   cropOptions = [],
   livestockOptions = [],
-  communityOptions = []
+  communityOptions = [],
+  // New filter props
+  filterState = {
+    state: 'abia',
+    lga: '',
+    city: '',
+    farm_type: '',
+    crop_type: ''
+  },
+  onFilterChange = () => {},
+  lgaOptions = [],
+  cityOptions = [],
+  filterCropOptions = [],
+  onApplyFilter = () => {},
+  onClearFilter = () => {},
+  isLoadingLgas = false,
+  isLoadingCities = false,
+  isLoadingCrops = false
 }) => {
   // Filter layers by category
   const adminBoundaries = LAYER_OPTIONS.filter(layer => layer.category === 'admin');
@@ -137,7 +154,7 @@ const LeftDrawer = ({
         </div>
       </div>
 
-      {/* Farms Section */}
+      {/* Farms Section - HIDDEN for new filter implementation
       <div className="p-4 border-b">
         <div className="flex items-center mb-3">
           <LandPlot className="h-5 w-5 text-kitovu-purple mr-2" />
@@ -145,159 +162,117 @@ const LeftDrawer = ({
         </div>
         
         <div className="space-y-3">
-          {/* All Farms */}
-          <div className="flex items-start">
-            <input
-              type="radio"
-              id="farm-layer-all"
-              name="farmLayer"
-              checked={activeFarmLayer === 'all'}
-              onChange={() => handleFarmLayerChange('all')}
-              className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
-            />
-            <label htmlFor="farm-layer-all" className="ml-2 block text-sm">
-              <span className="font-medium">All Farms</span>
-            </label>
+          All existing farm layer options 
+        </div>
+      </div>
+      */}
+
+      {/* Farm Filters Section */}
+      <div className="p-4 border-b">
+        <div className="flex items-center mb-3">
+          <BarChart className="h-5 w-5 text-kitovu-purple mr-2" />
+          <h3 className="text-md font-medium">Farm Filters</h3>
+        </div>
+        
+        <div className="space-y-4">
+          {/* State Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">State</label>
+            <select 
+              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+              value={filterState.state}
+              disabled
+            >
+              <option value="Abia">Abia</option>
+            </select>
           </div>
           
-          {/* Farms by Type */}
+          {/* LGA Filter */}
           <div>
-            <div className="flex items-start">
-              <input
-                type="radio"
-                id="farm-layer-type"
-                name="farmLayer"
-                checked={activeFarmLayer === 'type'}
-                onChange={() => handleFarmLayerChange('type')}
-                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
-              />
-              <label htmlFor="farm-layer-type" className="ml-2 block text-sm">
-                <span className="font-medium">Farms by Type</span>
-              </label>
-            </div>
-            
-            {/* Farm Type Dropdown - Only show when Farms by Type is selected */}
-            {activeFarmLayer === 'type' && (
-              <div className="ml-6 mt-2">
-                <select 
-                  value={farmTypeFilter || ''}
-                  onChange={(e) => onFarmTypeFilterChange(e.target.value)}
-                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
-                >
-                  <option value="">Select Farm Type</option>
-                  {FARM_TYPES.map(type => (
-                    <option key={type.id} value={type.id}>
-                      {type.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">LGA</label>
+            <select 
+              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+              value={filterState.lga}
+              onChange={(e) => onFilterChange({ ...filterState, lga: e.target.value, city: '' })}
+              disabled={isLoadingLgas}
+            >
+              <option value="">Select LGA</option>
+              {lgaOptions.map(lga => (
+                <option key={lga.value} value={lga.value}>
+                  {lga.label}
+                </option>
+              ))}
+            </select>
+            {isLoadingLgas && <div className="text-xs text-gray-500 mt-1">Loading LGAs...</div>}
           </div>
           
-          {/* Farms by Crop */}
+          {/* Community Filter */}
           <div>
-            <div className="flex items-start">
-              <input
-                type="radio"
-                id="farm-layer-crop"
-                name="farmLayer"
-                checked={activeFarmLayer === 'crop'}
-                onChange={() => handleFarmLayerChange('crop')}
-                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
-              />
-              <label htmlFor="farm-layer-crop" className="ml-2 block text-sm">
-                <span className="font-medium">Farms by Crop</span>
-              </label>
-            </div>
-            
-            {/* Crop Type Dropdown - Only show when Farms by Crop is selected */}
-            {activeFarmLayer === 'crop' && (
-              <div className="ml-6 mt-2">
-                <select 
-                  value={cropTypeFilter || ''}
-                  onChange={(e) => onCropTypeFilterChange(e.target.value)}
-                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
-                >
-                  <option value="">Select Crop Type</option>
-                  {cropOptions.map(crop => (
-                    <option key={crop} value={crop}>
-                      {crop.charAt(0).toUpperCase() + crop.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Community (City)</label>
+            <select 
+              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+              value={filterState.city}
+              onChange={(e) => onFilterChange({ ...filterState, city: e.target.value })}
+              disabled={isLoadingCities || !filterState.lga}
+            >
+              <option value="">Select Community</option>
+              {cityOptions.map(city => (
+                <option key={city.value} value={city.value}>
+                  {city.label}
+                </option>
+              ))}
+            </select>
+            {isLoadingCities && <div className="text-xs text-gray-500 mt-1">Loading Cities...</div>}
           </div>
           
-          {/* Farms by Livestock */}
+          {/* Farm Type Filter */}
           <div>
-            <div className="flex items-start">
-              <input
-                type="radio"
-                id="farm-layer-livestock"
-                name="farmLayer"
-                checked={activeFarmLayer === 'livestock'}
-                onChange={() => handleFarmLayerChange('livestock')}
-                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
-              />
-              <label htmlFor="farm-layer-livestock" className="ml-2 block text-sm">
-                <span className="font-medium">Farms by Livestock</span>
-              </label>
-            </div>
-            
-            {/* Livestock Type Dropdown - Only show when Farms by Livestock is selected */}
-            {activeFarmLayer === 'livestock' && (
-              <div className="ml-6 mt-2">
-                <select 
-                  value={livestockTypeFilter || ''}
-                  onChange={(e) => onLivestockTypeFilterChange(e.target.value)}
-                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
-                >
-                  <option value="">Select Livestock Type</option>
-                  {livestockOptions.map(livestock => (
-                    <option key={livestock} value={livestock}>
-                      {livestock.charAt(0).toUpperCase() + livestock.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Farm Type</label>
+            <select 
+              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+              value={filterState.farm_type}
+              onChange={(e) => onFilterChange({ ...filterState, farm_type: e.target.value })}
+            >
+              <option value="">Select Farm Type</option>
+              <option value="crop_farming">Crop Farming</option>
+              <option value="livestock_farming">Livestock Farming</option>
+              <option value="both">Both</option>
+            </select>
           </div>
           
-          {/* Farms by Community */}
+          {/* Crop Type Filter */}
           <div>
-            <div className="flex items-start">
-              <input
-                type="radio"
-                id="farm-layer-community"
-                name="farmLayer"
-                checked={activeFarmLayer === 'community'}
-                onChange={() => handleFarmLayerChange('community')}
-                className="mt-1 h-4 w-4 rounded-full border-gray-400 text-kitovu-purple focus:ring-kitovu-purple"
-              />
-              <label htmlFor="farm-layer-community" className="ml-2 block text-sm">
-                <span className="font-medium">Farms by Community</span>
-              </label>
-            </div>
-            
-            {/* Community Dropdown - Only show when Farms by Community is selected */}
-            {activeFarmLayer === 'community' && (
-              <div className="ml-6 mt-2">
-                <select 
-                  value={communityFilter || ''}
-                  onChange={(e) => onCommunityFilterChange(e.target.value)}
-                  className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
-                >
-                  <option value="">Select Community</option>
-                  {communityOptions.map(community => (
-                    <option key={community} value={community}>
-                      {community}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+            <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
+            <select 
+              className="w-full text-sm rounded-md border-gray-300 shadow-sm focus:border-kitovu-purple focus:ring-kitovu-purple"
+              value={filterState.crop_type}
+              onChange={(e) => onFilterChange({ ...filterState, crop_type: e.target.value })}
+              disabled={isLoadingCrops}
+            >
+              <option value="">Select Crop Type</option>
+              {filterCropOptions.map(crop => (
+                <option key={crop.value} value={crop.value}>
+                  {crop.label}
+                </option>
+              ))}
+            </select>
+            {isLoadingCrops && <div className="text-xs text-gray-500 mt-1">Loading Crops...</div>}
+          </div>
+          
+          {/* Filter and Clear Buttons */}
+          <div className="flex space-x-2 mt-4">
+            <button
+              onClick={onApplyFilter}
+              className="flex-1 bg-kitovu-purple text-white px-3 py-2 rounded-md text-sm font-medium hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-kitovu-purple focus:ring-offset-2"
+            >
+              Filter
+            </button>
+            <button
+              onClick={onClearFilter}
+              className="flex-1 bg-gray-200 text-gray-700 px-3 py-2 rounded-md text-sm font-medium hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+            >
+              Clear
+            </button>
           </div>
         </div>
       </div>

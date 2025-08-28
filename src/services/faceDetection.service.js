@@ -48,16 +48,50 @@ class FaceDetectionService {
 
       console.log('Detecting face in image:', imageUrl);
       
-      // Create image element
+      // Create image element with authentication
       const img = new Image();
       img.crossOrigin = 'anonymous';
+      
+      // Get token for authentication  
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
       const imageLoadPromise = new Promise((resolve, reject) => {
         img.onload = () => resolve(img);
         img.onerror = () => reject(new Error('Failed to load image'));
       });
       
-      img.src = imageUrl;
+      // For authenticated images, we need to fetch them first then create blob URL
+      if (token && (imageUrl.includes('/uploads/') || imageUrl.includes('/api/uploads/'))) {
+        // Normalize the URL - remove /api if present, backend serves at /uploads
+        const normalizedUrl = imageUrl.replace('/api/uploads/', '/uploads/').startsWith('/uploads/') 
+          ? `http://localhost:3000${imageUrl.replace('/api/uploads/', '/uploads/')}` 
+          : `http://localhost:3000${imageUrl}`;
+        try {
+          const response = await fetch(normalizedUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          img.src = blobUrl;
+        } catch (fetchError) {
+          console.error('Failed to fetch authenticated image:', fetchError);
+          // Don't throw error for 404 - image doesn't exist
+          if (fetchError.message?.includes('404')) {
+            console.warn('Image not found, skipping face detection:', imageUrl);
+            return false; // No face detected since image doesn't exist
+          }
+          throw new Error('Failed to load authenticated image');
+        }
+      } else {
+        img.src = imageUrl;
+      }
       const loadedImg = await imageLoadPromise;
 
       // Detect faces using TinyFaceDetector (faster)
@@ -65,6 +99,11 @@ class FaceDetectionService {
         .detectSingleFace(loadedImg, new faceapi.TinyFaceDetectorOptions());
 
       const hasFace = !!detection;
+      
+      // Clean up blob URL if we created one
+      if (img.src.startsWith('blob:')) {
+        URL.revokeObjectURL(img.src);
+      }
       
       // Cache the result
       this.cache.set(cacheKey, hasFace);
