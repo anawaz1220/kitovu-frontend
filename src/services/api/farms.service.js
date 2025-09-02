@@ -151,10 +151,34 @@ const getFarmById = async (farmId) => {
   }
 };
 
+/**
+ * Update farm details by farm ID
+ * @param {string} farmId - Farm ID to update
+ * @param {Object} farmData - Farm data to update
+ * @returns {Promise<Object>} - Updated farm object
+ */
+const updateFarm = async (farmId, farmData) => {
+  try {
+    const token = getToken();
+    const { data } = await api.put(`/farms/${farmId}`, farmData, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    return data;
+  } catch (error) {
+    console.error('Error updating farm:', error);
+    throw error;
+  }
+};
+
 // Create a service object with all functions
 const farmService = {
   getFarms,
   getFarmById,
+  updateFarm,
   getUniqueValues,
   calculateFarmsSummary,
   loadFilterOptions

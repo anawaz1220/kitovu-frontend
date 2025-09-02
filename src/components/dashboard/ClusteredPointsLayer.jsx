@@ -1,6 +1,6 @@
 // src/components/dashboard/ClusteredPointsLayer.jsx
 import React, { useEffect, useState, useRef } from 'react';
-import { Marker, Popup, useMap, GeoJSON } from 'react-leaflet';
+import { Marker, Popup, useMap, GeoJSON, CircleMarker } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import { User, LandPlot } from 'lucide-react';
@@ -8,6 +8,8 @@ import { fetchFarmersLocations, fetchFarmsLocations } from '../../services/api/l
 import { getFarmerById, getFarmsByFarmerId } from '../../services/api/farmerQuery.service';
 import farmService from '../../services/api/farms.service';
 import TestFarmPopup from './TestFarmPopup';
+import { getFarmStyle, getFarmMarkerSize, calculateCentroid } from './utils/geometryUtils';
+import FarmPopupOnClick from './FarmPopupOnClick';
 
 // Custom icons for farmers and farms
 const createCustomIcon = (type, isCluster = false) => {
@@ -55,12 +57,14 @@ const createClusterCustomIcon = (cluster) => {
  * @param {Object} props - Component props
  * @param {boolean} props.showFarmers - Whether to show farmer markers
  * @param {boolean} props.showFarms - Whether to show farm markers
+ * @param {Object} props.filteredData - Filtered analytics data containing farmers and farms
  * @param {Function} props.onSelectFarmer - Function to call when farmer is selected
  * @param {Function} props.onAdvisoryClick - Function to call when advisory button is clicked
  */
 const ClusteredPointsLayer = ({ 
   showFarmers = false, 
   showFarms = false, 
+  filteredData = null,
   onSelectFarmer,
   onSelectFarm,
   onAdvisoryClick 
@@ -73,23 +77,53 @@ const ClusteredPointsLayer = ({
   const [currentZoom, setCurrentZoom] = useState(10);
   const map = useMap();
   const clusterGroupRef = useRef(null);
+  
 
-  // Zoom threshold for showing polygons vs points
-  const POLYGON_ZOOM_THRESHOLD = 16;
+  // Zoom threshold for showing polygons vs points - match FarmsLayer
+  const POLYGON_ZOOM_THRESHOLD = 11;
 
-  // Fetch farmers locations when showFarmers is true
+  // Handle data loading - use filtered data when available, otherwise fetch all data
   useEffect(() => {
-    if (showFarmers && !farmersData) {
-      fetchFarmersData();
+    console.log('ClusteredPointsLayer data loading effect:', {
+      showFarmers,
+      showFarms,
+      hasFilteredData: !!filteredData,
+      hasMapData: !!(filteredData?.map_data)
+    });
+    
+    if (filteredData && filteredData.map_data) {
+      // Use filtered data from analytics results
+      if (showFarmers) {
+        const farmersFromFilter = filteredData.map_data.farmers || [];
+        console.log('Setting farmers data from filter:', farmersFromFilter.length, 'farmers');
+        setFarmersData(farmersFromFilter);
+      }
+      if (showFarms) {
+        const farmsFromFilter = filteredData.map_data.farms || [];
+        console.log('Setting farms data from filter:', farmsFromFilter.length, 'farms');
+        setFarmsData(farmsFromFilter);
+      }
+    } else {
+      // Fallback to fetching all data when no filtered data is available
+      console.log('No filtered data available, using fallback fetch');
+      if (showFarmers && !farmersData) {
+        fetchFarmersData();
+      }
+      if (showFarms && !farmsData) {
+        fetchFarmsData();
+      }
     }
-  }, [showFarmers, farmersData]);
+  }, [showFarmers, showFarms, filteredData, farmersData, farmsData]);
 
-  // Fetch farms locations when showFarms is true
+  // Reset data when show flags change to false
   useEffect(() => {
-    if (showFarms && !farmsData) {
-      fetchFarmsData();
+    if (!showFarmers) {
+      setFarmersData(null);
     }
-  }, [showFarms, farmsData]);
+    if (!showFarms) {
+      setFarmsData(null);
+    }
+  }, [showFarmers, showFarms]);
 
   // Fit bounds to clustered points when data is available
   useEffect(() => {
@@ -243,8 +277,18 @@ const ClusteredPointsLayer = ({
 
   // Don't render if no layers are active
   if (!showFarmers && !showFarms) {
+    console.log('ClusteredPointsLayer not rendering - no layers active');
     return null;
   }
+
+  console.log('ClusteredPointsLayer rendering:', {
+    showFarmers,
+    showFarms,
+    farmersDataLength: Array.isArray(farmersData) ? farmersData.length : 'not array',
+    farmsDataLength: Array.isArray(farmsData) ? farmsData.length : 'not array',
+    currentZoom,
+    threshold: POLYGON_ZOOM_THRESHOLD
+  });
 
   // Show loading state
   if (isLoading) {
@@ -271,93 +315,118 @@ const ClusteredPointsLayer = ({
   }
 
   return (
-    <MarkerClusterGroup
-      ref={clusterGroupRef}
-      iconCreateFunction={createClusterCustomIcon}
-      maxClusterRadius={50}
-      spiderfyOnMaxZoom={true}
-      showCoverageOnHover={false}
-      zoomToBoundsOnClick={true}
-      animate={true}
-      pane="clusterPane"
-    >
-      {/* Farmer Markers */}
-      {showFarmers && farmersData && farmersData.farmers && farmersData.farmers.map((farmer) => (
-        <Marker
-          key={`farmer-${farmer.farmer_id}`}
-          position={[farmer.latitude, farmer.longitude]}
-          icon={createCustomIcon('farmer')}
-          eventHandlers={{
-            click: () => handleFarmerClick(farmer.farmer_id)
-          }}
-        />
-      ))}
+    <>
+      {/* Clustered markers at low zoom */}
+      <MarkerClusterGroup
+        ref={clusterGroupRef}
+        iconCreateFunction={createClusterCustomIcon}
+        maxClusterRadius={50}
+        spiderfyOnMaxZoom={true}
+        showCoverageOnHover={false}
+        zoomToBoundsOnClick={true}
+        animate={true}
+        pane="clusterPane"
+      >
+        {/* Farmer Markers - always clustered */}
+        {showFarmers && farmersData && Array.isArray(farmersData) && farmersData.map((farmer) => (
+          <Marker
+            key={`farmer-${farmer.farmer_id}`}
+            position={[farmer.latitude, farmer.longitude]}
+            icon={createCustomIcon('farmer')}
+            eventHandlers={{
+              click: () => handleFarmerClick(farmer.farmer_id)
+            }}
+          />
+        ))}
+        
+        {/* Legacy format support for farmers */}
+        {showFarmers && farmersData && farmersData.farmers && Array.isArray(farmersData.farmers) && farmersData.farmers.map((farmer) => (
+          <Marker
+            key={`farmer-legacy-${farmer.farmer_id}`}
+            position={[farmer.latitude, farmer.longitude]}
+            icon={createCustomIcon('farmer')}
+            eventHandlers={{
+              click: () => handleFarmerClick(farmer.farmer_id)
+            }}
+          />
+        ))}
 
-      {/* Farm Markers - Show as points when zoomed out or polygons when zoomed in */}
-      {showFarms && farmsData && farmsData.farms && (
-        currentZoom >= POLYGON_ZOOM_THRESHOLD ? (
-          // Show farm polygons at high zoom
-          farmsData.farms.map((farm) => {
-            const geoJSON = createFarmGeoJSON(farm);
-            if (!geoJSON) return null;
-
-            return (
-              <GeoJSON
-                key={`farm-polygon-${farm.farm_id}`}
-                data={geoJSON}
-                style={{
-                  fillColor: 'transparent',
-                  weight: 2,
-                  opacity: 1,
-                  color: '#047857',
-                  fillOpacity: 0
-                }}
-                eventHandlers={{
-                  click: (e) => {
-                    console.log('Farm polygon clicked!', farm.farm_id);
-                    handleFarmClick(farm);
-                    e.originalEvent?.stopPropagation();
-                  },
-                  mouseover: (e) => {
-                    console.log('Farm polygon mouseover', farm.farm_id);
-                    e.target.setStyle({
-                      fillColor: '#059669',
-                      fillOpacity: 0.2,
-                      weight: 3
-                    });
-                  },
-                  mouseout: (e) => {
-                    e.target.setStyle({
-                      fillColor: 'transparent',
-                      fillOpacity: 0,
-                      weight: 2
-                    });
-                  }
-                }}
-                pane="clusterPane"
-              >
-
-              </GeoJSON>
-            );
-          })
-        ) : (
-          // Show farm markers at low zoom (clustered)
-          farmsData.farms.map((farm) => (
+        {/* Farm Markers - only at low zoom (clustered) */}
+        {showFarms && farmsData && Array.isArray(farmsData) && currentZoom <= POLYGON_ZOOM_THRESHOLD && farmsData.map((farm) => {
+          if (!farm.geom) return null;
+          
+          // Calculate centroid if not already available  
+          const centroid = farm.centroid ? [farm.centroid_latitude, farm.centroid_longitude] : calculateCentroid(farm.geom);
+          
+          if (!centroid) return null;
+          
+          return (
             <Marker
-              key={`farm-${farm.farm_id}`}
+              key={`farm-marker-${farm.farm_id}`}
+              position={centroid}
+              icon={createCustomIcon('farm')}
+              eventHandlers={{
+                click: () => handleFarmClick(farm)
+              }}
+            />
+          );
+        })}
+        
+        {/* Legacy format support for farms - clustered */}
+        {showFarms && farmsData && farmsData.farms && Array.isArray(farmsData.farms) && currentZoom <= POLYGON_ZOOM_THRESHOLD && farmsData.farms.map((farm) => (
+            <Marker
+              key={`farm-legacy-${farm.farm_id}`}
               position={[farm.centroid_latitude, farm.centroid_longitude]}
               icon={createCustomIcon('farm')}
               eventHandlers={{
                 click: () => handleFarmClick(farm)
               }}
-            >
- 
-              />
-            </Marker>
-          ))
-        )
-      )}
-    </MarkerClusterGroup>
+            />
+        ))}
+      </MarkerClusterGroup>
+
+      {/* Farm polygons at high zoom - outside cluster group */}
+      {showFarms && farmsData && Array.isArray(farmsData) && currentZoom >= POLYGON_ZOOM_THRESHOLD && farmsData.map((farm) => {
+        if (!farm.geom) return null;
+        
+        return (
+          <GeoJSON
+            key={`farm-polygon-${farm.farm_id}`}
+            data={farm.geom}
+            style={() => getFarmStyle(farm)}
+            eventHandlers={{
+              click: () => handleFarmClick(farm)
+            }}
+            pane="clusterPane"
+          >
+            <FarmPopupOnClick farm={farm} />
+          </GeoJSON>
+        );
+      })}
+      
+      {/* Legacy format farm polygons at high zoom */}
+      {showFarms && farmsData && farmsData.farms && Array.isArray(farmsData.farms) && currentZoom >= POLYGON_ZOOM_THRESHOLD && farmsData.farms.map((farm) => {
+        const geoJSON = createFarmGeoJSON(farm);
+        if (!geoJSON) return null;
+
+        return (
+          <GeoJSON
+            key={`farm-polygon-legacy-${farm.farm_id}`}
+            data={geoJSON}
+            style={() => getFarmStyle(farm)}
+            eventHandlers={{
+              click: (e) => {
+                handleFarmClick(farm);
+                e.originalEvent?.stopPropagation();
+              }
+            }}
+            pane="clusterPane"
+          >
+            <FarmPopupOnClick farm={farm} />
+          </GeoJSON>
+        );
+      })}
+    </>
   );
 };
 
