@@ -230,16 +230,22 @@ const AnalyticsResultsDrawer = ({
                       <p className="text-xs font-medium text-gray-900">{card.title}</p>
                       <p className={`text-lg font-bold ${card.color}`}>{card.value}</p>
                       <div className="flex items-center space-x-2 mt-1">
-                        <input
+                        {/* <input
                           type="checkbox"
                           checked={card.checked}
                           onChange={(e) => {
+                            console.log(`Checkbox ${card.title} changed to:`, e.target.checked);
                             e.stopPropagation();
-                            card.onToggle();
+                            if (card.onToggle) {
+                              console.log(`Calling onToggle for ${card.title}`);
+                              card.onToggle();
+                            } else {
+                              console.log(`No onToggle handler for ${card.title}`);
+                            }
                           }}
                           className="h-3 w-3 text-kitovu-purple focus:ring-kitovu-purple border-gray-300 rounded"
-                        />
-                        <p className="text-xs text-gray-500">Show on map</p>
+                        /> */}
+                        {/* <p className="text-xs text-gray-500">Show on map</p> */}
                       </div>
                     </div>
                   </div>

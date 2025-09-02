@@ -462,11 +462,19 @@ const Dashboard = () => {
   
   // Handle clustered points toggles
   const handleToggleFarmersOnMap = useCallback(() => {
-    setShowFarmersOnMap(prev => !prev);
+    console.log('handleToggleFarmersOnMap called');
+    setShowFarmersOnMap(prev => {
+      console.log('Toggling farmers from', prev, 'to', !prev);
+      return !prev;
+    });
   }, []);
 
   const handleToggleFarmsOnMap = useCallback(() => {
-    setShowFarmsOnMap(prev => !prev);
+    console.log('handleToggleFarmsOnMap called');
+    setShowFarmsOnMap(prev => {
+      console.log('Toggling farms from', prev, 'to', !prev);
+      return !prev;
+    });
   }, []);
 
   // Auto turn-off clusters when analytics layers are disabled
@@ -686,7 +694,12 @@ const Dashboard = () => {
         {/* Analytics Results Drawer */}
         <AnalyticsResultsDrawer
           isOpen={showAnalyticsDrawer}
-          onClose={() => setShowAnalyticsDrawer(false)}
+          onClose={() => {
+            setShowAnalyticsDrawer(false);
+            // Reset clustering when analytics drawer is closed
+            setShowFarmersOnMap(false);
+            setShowFarmsOnMap(false);
+          }}
           results={analyticsResults}
           showFarmersChecked={showFarmersOnMap}
           showFarmsChecked={showFarmsOnMap}
@@ -721,11 +734,12 @@ const Dashboard = () => {
             />
           )}
 
-          {/* Clustered points layers - only render when analytics layers are active */}
-          {(activeLayers.farmersByState || activeLayers.farmersByLGA || activeLayers.commodityByState || activeLayers.commodityByLGA) && (
+          {/* Clustered points layers - render when analytics layers are active OR when we have analytics results */}
+          {((activeLayers.farmersByState || activeLayers.farmersByLGA || activeLayers.commodityByState || activeLayers.commodityByLGA) || analyticsResults) && (
             <ClusteredPointsLayer
               showFarmers={showFarmersOnMap}
               showFarms={showFarmsOnMap}
+              filteredData={analyticsResults}
               onSelectFarmer={handleSelectFarmer}
               onSelectFarm={handleFarmSelect}
               onAdvisoryClick={handleAdvisoryClick}
