@@ -4,6 +4,7 @@ import { X, MapPin, Ruler, Sprout, User, DollarSign, Calendar, Home, Layers, Nav
 import { getFarmerById } from '../../services/api/farmerQuery.service';
 import farmService from '../../services/api/farms.service';
 import StableFormInput from './StableFormInput';
+import { calculateCentroid } from './utils/geometryUtils';
 import {
   FARM_TYPE_OPTIONS,
   OWNERSHIP_STATUS_OPTIONS,
@@ -318,6 +319,26 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick, onF
     addressParts.push('Nigeria');
     
     return addressParts;
+  };
+
+  // Helper function to get farm central coordinates
+  const getFarmCentralCoordinates = () => {
+    if (!displayFarm?.geom) return null;
+    
+    try {
+      const centroid = calculateCentroid(displayFarm.geom);
+      if (centroid && centroid.length === 2) {
+        const [lat, lng] = centroid;
+        return {
+          latitude: parseFloat(lat).toFixed(6),
+          longitude: parseFloat(lng).toFixed(6)
+        };
+      }
+    } catch (error) {
+      console.error('Error calculating farm centroid:', error);
+    }
+    
+    return null;
   };
 
   // Debug: Log the selectedFarm data
@@ -736,9 +757,33 @@ const FarmDetailsDrawer = ({ isOpen, onClose, selectedFarm, onAdvisoryClick, onF
             </div>
           )}
 
+          {/* Farm Central Coordinates */}
+          {(() => {
+            const coordinates = getFarmCentralCoordinates();
+            return coordinates ? (
+              <div className="mb-3 pb-3 border-b border-orange-200">
+                <div className="text-sm text-gray-600 mb-2">Farm Central Coordinates:</div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="text-sm">
+                    <span className="text-gray-600">Latitude:</span>
+                    <div className="font-medium text-orange-800 font-mono">
+                      {coordinates.latitude}°
+                    </div>
+                  </div>
+                  <div className="text-sm">
+                    <span className="text-gray-600">Longitude:</span>
+                    <div className="font-medium text-orange-800 font-mono">
+                      {coordinates.longitude}°
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null;
+          })()}
+
           {/* Distance Information */}
           {displayFarm.distance_to_farm_km && (
-            <div className="flex justify-between items-center border-t border-orange-200 pt-2">
+            <div className="flex justify-between items-center">
               <span className="text-sm text-gray-600">Distance to Farm:</span>
               <span className="font-medium text-orange-800">
                 {formatNumber(displayFarm.distance_to_farm_km)} km
